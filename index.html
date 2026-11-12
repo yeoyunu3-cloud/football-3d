@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0c171b"><title>축구 3D</title><link rel="stylesheet" href="./style.css?v=20261112-20-release"><link rel="stylesheet" href="./visual-refresh.css?v=20261112-20-release"></head>
+<body>
+<div id="scene" aria-label="3D 축구 경기장"></div>
+<main>
+<section class="matchbar" aria-label="점수와 경기 시간"><div class="club"><span>홈 팀</span></div><div class="versus"><b><span id="home-score">0</span> <span>:</span> <span id="away-score">0</span></b><small id="clock">00:00</small><span id="period" class="period">전반</span><span id="added-time" class="added-time" hidden></span><span id="penalties-score" class="added-time" hidden></span></div><div class="club away"><span>원정 팀</span></div></section>
+<button id="tactics-toggle" class="tactics-button" aria-expanded="true" aria-controls="tactics-panel" hidden>전술</button>
+<section id="tactics-panel" class="tactics-panel" aria-label="감독 전술" hidden>
+<div class="manager-heading">감독 전술 <span id="active-formation"></span></div>
+<label>성향<select id="mentality"><option value="defensive">수비</option><option value="balanced" selected>균형</option><option value="attacking">공격</option></select></label>
+<label>압박<select id="pressure"><option value="low">낮게</option><option value="balanced" selected>보통</option><option value="high">높게</option></select></label>
+<label>경기 속도<select id="match-speed"><option value="1">1배</option><option value="2">2배</option></select></label>
+<div class="match-stats"><span>슈팅</span><b id="shot-stats">0 : 0</b><span>점유율</span><b id="possession-stats">50 : 50</b><span>선방</span><b id="save-stats">0 : 0</b><span>패스</span><b id="pass-stats">0 : 0</b></div>
+</section>
+<div id="power" class="power-meter" aria-label="패스·슛 세기" hidden><i id="power-fill"></i><span id="power-label"></span></div>
+<div id="message" role="status"></div>
+<section id="match-announcement" class="match-announcement" role="status" hidden><b id="announcement-title"></b><p id="announcement-detail"></p><div id="shootout-tally" hidden></div><div id="draw-actions" hidden><button id="clear-drawn-kick">다시 그리기</button><button id="take-drawn-kick" disabled>차기</button></div></section>
+
+<button id="roster-toggle" class="roster-toggle" aria-expanded="false">선수·기록</button><aside id="match-sidebar" class="match-sidebar" hidden><div class="sidebar-tabs"><button id="side-players" aria-pressed="true">명단</button><button id="side-events" aria-pressed="false">경기 기록</button></div><div id="sidebar-roster"><select id="roster-team" aria-label="명단 팀"><option value="0">홈 팀</option><option value="1">원정 팀</option></select><div id="roster-content"></div></div><ol id="live-events" hidden></ol></aside>
+<section class="player-card" aria-label="조작 중인 선수"><span class="shirt-number" id="number">10</span><div><small><span id="position">ST</span></small><b id="player-name">한도윤</b><span class="stamina"><i id="stamina"></i></span></div></section>
+<section class="minimap"><canvas id="map" width="252" height="164" aria-label="선수 위치 지도"></canvas></section>
+<div class="controls-hint"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동</span><span><kbd>Shift</kbd> 달리기</span><span><kbd>Q</kbd> 선수 전환</span><span><kbd>Space</kbd> 슛</span><span><kbd>E</kbd> 패스</span><span><kbd>R</kbd> 스루패스</span><span><kbd>X</kbd> 크로스</span><span><kbd>Esc</kbd> 메뉴</span></div>
+<div class="touch-controls" id="touch"><div id="joystick" aria-label="선수 이동 조이스틱"><span id="stick"></span></div><div class="touch-actions"><button id="switch">선수<br>전환</button><button id="pass">패스</button><button id="sprint">달리기</button><button id="shoot">슛·헤딩</button><button id="through">스루패스</button><button id="cross">크로스</button><button id="shot-style">일반 슛</button><button id="keeper-drop" hidden>공 놓기</button><button id="cancel-kick" hidden>동작 취소</button></div></div>
+<footer><span id="attack-direction">홈 팀 → 오른쪽 골대</span><div class="match-menu-actions"><button id="match-menu">메뉴 <kbd>Esc</kbd></button></div></footer>
+</main>
+<dialog id="exit-dialog" aria-labelledby="exit-title"><h2 id="exit-title">경기 메뉴</h2><p id="exit-online-note" hidden>온라인 경기는 메뉴를 열어도 계속 진행됩니다.</p><div class="result-actions"><button id="resume-match" class="primary">계속하기</button><button id="quit-match">경기 종료 · 홈 화면</button></div></dialog>
+<dialog id="notice-dialog" aria-labelledby="notice-title"><h2 id="notice-title"></h2><p id="notice-message"></p><div class="notice-actions"><button id="notice-cancel" hidden>취소</button><button id="notice-ok" class="primary">확인</button></div></dialog>
+<section id="result" class="result hidden" aria-live="polite"><h2 id="result-title">경기 종료</h2><p id="result-score"></p><div class="result-actions"><button id="replay" class="primary">새 경기</button><button id="result-home">홈 화면</button></div></section><section id="halftime" class="result hidden" aria-live="polite"><h2>하프타임</h2><p id="halftime-score"></p><span id="halftime-countdown" class="break-countdown">3초 후 후반 시작</span></section>
+<section id="home" class="home-screen" aria-label="선수 커스터마이징">
+<div class="home-header"><h1>축구 3D</h1><nav class="home-nav" aria-label="홈 메뉴"><button id="nav-play" aria-pressed="true">플레이</button><button id="nav-club" aria-pressed="false">내 팀</button><button id="nav-history" aria-pressed="false">경기 기록</button></nav><span id="save-status" role="status">저장됨</span></div>
+<section id="play-room" class="play-room">
+<div id="mode-hub">
+<section class="club-hero"><div class="hero-copy"><span class="section-label">내 스쿼드</span><h2 id="home-squad-title">내 팀</h2><p id="club-summary">선수 11명</p><button id="edit-club-entry" class="hero-edit">선수·유니폼 편집 <span aria-hidden="true">↗</span></button></div><div id="home-player-preview" aria-label="내 선수 3D 미리보기"></div><div class="hero-player"><b id="home-player-name"></b><span id="home-player-role"></span></div></section>
+<div class="mode-grid"><button class="mode-card player-mode-card" id="choose-player"><span class="mode-icon" aria-hidden="true"><svg viewBox="0 0 64 48"><path d="M16 12h32c10 0 18 27 9 29-5 1-10-8-15-8H22c-5 0-10 9-15 8-9-2-1-29 9-29Z"/><path d="M18 19v13M12 25h13"/><circle cx="44" cy="22" r="2"/><circle cx="50" cy="28" r="2"/></svg></span><div><strong>직접 플레이</strong><span>선수 조작 · 8분 경기</span></div><span class="mode-arrow" aria-hidden="true">↗</span></button>
+<button class="mode-card manager-mode-card" id="choose-manager"><span class="mode-icon board-icon" aria-hidden="true"><svg viewBox="0 0 64 48"><rect x="6" y="5" width="52" height="38" rx="4"/><path d="M32 5v38"/><circle cx="32" cy="24" r="9"/><circle cx="18" cy="17" r="2"/><circle cx="46" cy="32" r="2"/></svg></span><div><strong>감독 모드</strong><span>전술 지시 · AI 경기 관전</span></div><span class="mode-arrow" aria-hidden="true">↗</span></button></div>
+<button class="online-mode-card" id="online-mode" disabled>온라인 1vs1 <span>준비 중</span></button></div>
+<section id="pre-match" class="pre-match" hidden><button id="setup-back" class="back-button">← 모드 선택</button><div class="setup-heading"><h2 id="setup-title">일반 경기 준비</h2><span id="setup-description">선수 직접 조작</span></div>
+<div class="setup-grid"><div><div class="panel-heading"><h3>선발 배치</h3><button id="edit-lineup">선수 편집</button></div><div id="setup-lineup" class="setup-pitch" aria-label="경기 전 선발 배치"></div></div><div class="setup-options">
+<label>상대 스쿼드<select id="opponent-squad" aria-label="상대 스쿼드"><option value="default">기본 상대 팀</option></select></label><p id="opponent-summary" class="opponent-summary"></p>
+<label>포메이션<select id="setup-formation" aria-label="경기 전 포메이션" required><option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option><option>3-5-2</option><option value="custom">자유 배치</option></select></label>
+<div id="manager-setup" hidden><label>성향<select id="setup-mentality"><option value="defensive">수비</option><option value="balanced" selected>균형</option><option value="attacking">공격</option></select></label><label>압박<select id="setup-pressure"><option value="low">낮게</option><option value="balanced" selected>보통</option><option value="high">높게</option></select></label></div>
+<label id="control-setting">조작 설정<select id="control-preset"><option value="motive">피파 모티브 · 방향키</option><option value="current">기존 방식 · WASD</option></select></label><div id="player-setup" class="setup-controls"><span><kbd>WASD</kbd> 이동</span><span><kbd>E</kbd> 패스</span><span><kbd>R</kbd> 스루패스</span><span><kbd>X</kbd> 크로스</span><span><kbd>Space</kbd> 슛·헤딩</span><span><kbd>Esc</kbd> 경기 메뉴</span></div>
+<div class="match-duration">전·후반 각 4분 <span>총 8분 · 추가시간 · 무승부 시 승부차기</span></div><button id="launch-match" class="primary">일반 경기 시작</button></div></div></section>
+</section>
+<section id="club-toolbar" class="club-toolbar" hidden><button id="club-back" class="back-button">← 홈</button><label>스쿼드<select id="squad-select"></select></label><label>스쿼드 이름<input id="squad-name" maxlength="30"></label><div class="squad-actions"><button id="save-squad">이름 저장</button><button id="new-squad">새 스쿼드</button><button id="copy-squad">복사 저장</button><button id="delete-squad">삭제</button></div></section>
+<div class="club-workspace" id="club-workspace" hidden>
+<section class="roster-panel"><h2>선수</h2><div id="roster-list"></div></section>
+<section class="custom-panel"><div class="preview-wrap"><button id="preview-reset" type="button" aria-label="선수 미리보기 회전 초기화" title="회전 초기화">⟲</button><div id="player-preview" aria-label="선수 3D 미리보기"></div><div class="preview-caption"><b id="preview-name"></b><span id="preview-details"></span></div></div>
+<div class="editor-tabs" aria-label="선수 편집 항목"><button id="tab-player" aria-pressed="true">선수 정보</button><button id="tab-kit" aria-pressed="false">유니폼</button></div><fieldset id="kit-library" class="kit-editor" hidden><legend>유니폼 선택</legend><p class="kit-selected" id="kit-current-name"></p><div id="kit-presets" class="kit-presets" aria-label="유니폼 선택"></div></fieldset><form id="player-editor" onsubmit="return false">
+<label>이름<input id="edit-name" maxlength="20" autocomplete="off" required></label>
+<p id="number-error" class="field-error" role="alert" hidden></p><div class="field-pair"><label>등번호<input id="edit-number" type="number" min="1" max="99" step="1" required aria-describedby="number-error"></label><label>포지션<select id="edit-role"><option>GK</option><option>LB</option><option>CB</option><option>RB</option><option>DM</option><option>CM</option><option>AM</option><option>LM</option><option>RM</option><option>LW</option><option>RW</option><option>ST</option></select></label></div>
+<label for="edit-height">키 <output id="edit-height-value"></output><input id="edit-height" type="range" min="150" max="210" step="1"></label>
+<label for="edit-weight">몸무게 <output id="edit-weight-value"></output><input id="edit-weight" type="range" min="45" max="120" step="1"></label>
+<div class="field-pair"><label>피부색<input id="edit-skin" type="color"></label><label>머리색<input id="edit-hair" type="color"></label></div>
+</form></section>
+<section class="formation-panel"><div class="panel-heading"><h2>포메이션</h2><select id="home-formation" aria-label="홈 포메이션"><option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option><option>3-5-2</option><option value="custom">자유 배치</option></select></div><div id="formation-pitch" aria-label="초기 선수 배치"><span class="pitch-goal"></span><span class="pitch-box"></span><span class="pitch-center"></span></div><p>드래그 / 방향키로 배치 · 공격 →</p></section>
+</div><section id="history-room" class="history-room" hidden><div class="history-heading"><h2>경기 기록</h2><button id="reset-history">경기 기록 초기화</button></div><p>이 브라우저의 최근 50경기</p><div id="history-list"></div></section></section>
+<script type="module" src="./game.js?v=20261113-motive"></script>
+</body></html>
