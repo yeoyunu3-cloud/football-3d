@@ -2,23 +2,23 @@ import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261112-20-
 import {fillEventRow} from './event-format.js?v=20261112-20-release';
 import {applyClub,defaultClub} from './roster.js?v=20261112-20-release';
 import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261112-20-release';
-import {VISUAL_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261112-20-release';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261113-fc2';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-field';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-field';
 import {locomotionPose,dampJoint} from './player-motion.js?v=20261112-20-release';
 import {paintKit} from './kit-art.js?v=20261112-20-release';
 import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261112-20-release';
 import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
-import {netOffset} from './goal-effects.js?v=20261112-20-release';
+import {netOffset} from './goal-effects.js?v=20261114-field';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_PATTERNS,SKILL_HOLDS,relativeArrow,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-skills';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-spread';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-field';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
 import { notify,textNode } from './ui.js?v=20261112-20-release';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261112-20-release';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-field';
 import {officialStep,celebrationPose} from './presentation.js?v=20261112-20-release';
-import { keeperPose } from './keeper.js?v=20261113-gk';
+import { keeperPose } from './keeper.js?v=20261114-field';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -49,7 +49,9 @@ $('scene').appendChild(renderer.domElement);
 const goalNets=[];
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x101d2b);
-scene.fog = new THREE.FogExp2(0x101d2b, 0.0028);
+scene.fog = new THREE.FogExp2(0x101d2b, 0.0028/FIELD_SCALE);
+// Stretch the ground plane: simulation x/z map to FIELD_SCALE metres; people and the ball are counter-scaled.
+scene.scale.set(FIELD_SCALE,1,FIELD_SCALE);
 const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, .1, 400);
 const hemi = new THREE.HemisphereLight(0xe5f4ff, 0x394f58, 1.7);
 scene.add(hemi);
@@ -57,7 +59,7 @@ const sun = new THREE.DirectionalLight(0xf3f5ff, 2.6);
 sun.position.set(-35, 70, 15);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left:-75, right:75, top:60, bottom:-60, near:1, far:150 });
+Object.assign(sun.shadow.camera, { left:-75*FIELD_SCALE, right:75*FIELD_SCALE, top:60*FIELD_SCALE, bottom:-60*FIELD_SCALE, near:1, far:180 });
 sun.shadow.bias = -.0005;
 scene.add(sun);
 const material = color => new THREE.MeshStandardMaterial({color, roughness:.85});
@@ -111,7 +113,7 @@ for(const sign of [-1,1]) {
   box(137,.12,.18,new THREE.MeshBasicMaterial({color:0x6498b1}),0,11.73,sign*52);
 }
 const seats = new THREE.InstancedMesh(new THREE.BoxGeometry(1,.38,.75), material(0x466a7d), 2200);
-const dummy=new THREE.Object3D();let seatIndex=0;
+const dummy=new THREE.Object3D();dummy.scale.set(1/FIELD_SCALE,1,1/FIELD_SCALE);let seatIndex=0;
 for(const sign of [-1,1])for(let tier=0;tier<6;tier++){
   for(let i=0;i<102;i++){dummy.position.set(-64+i*1.27,tier*1.5+.95,sign*(47+tier*3));dummy.updateMatrix();seats.setMatrixAt(seatIndex++,dummy.matrix);}
   for(let i=0;i<72;i++){dummy.position.set(sign*(64+tier*3),tier*1.5+.95,-44+i*1.23);dummy.updateMatrix();seats.setMatrixAt(seatIndex++,dummy.matrix);}
@@ -132,6 +134,7 @@ $('save-status').textContent='저장됨';
 function createPlayer(team,index,parent=scene){
   const visual=buildRealAthlete(team,index),{group}=visual;
   const shadow=new THREE.Mesh(new THREE.CircleGeometry(.65,24),new THREE.MeshBasicMaterial({color:0x06170d,map:contactTexture,transparent:true,opacity:.34,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.065;parent.add(shadow);
+  if(parent===scene){visual.fieldScale=FIELD_SCALE;group.scale.set(1/FIELD_SCALE,1,1/FIELD_SCALE);shadow.scale.set(1/FIELD_SCALE,1/FIELD_SCALE,1);}
   const home=formation[index];group.position.set(team===0?home[0]:-home[0],.12,team===0?home[1]:-home[1]);group.rotation.y=team===0?Math.PI/2:-Math.PI/2;parent.add(group);shadow.position.set(group.position.x,.065,group.position.z);
   return {...visual,shadow,home:group.position.clone(),stamina:100,phase:index*.7};
 }
@@ -140,7 +143,7 @@ function applyAppearance(visual,profile,uniform=null){
   if(!profile)return;
   if(visual.realistic){applyRealAppearance(visual,profile,uniform);return;}
   const height=profile.height??180,weight=profile.weight??77,width=THREE.MathUtils.clamp(Math.sqrt(weight/(height/100)**2/24),.8,1.3);
-  visual.group.scale.set(width,height/180,width);visual.head.scale.set(.96/Math.pow(width,.6),.94,.96/Math.pow(width,.6));
+  visual.group.scale.set(width/(visual.fieldScale??1),height/180,width/(visual.fieldScale??1));visual.head.scale.set(.96/Math.pow(width,.6),.94,.96/Math.pow(width,.6));
   if(uniform){
     const signature=JSON.stringify([uniform,profile.role==='GK']);
     if(visual.uniformSignature!==signature){
@@ -171,7 +174,7 @@ function showHome(){
 }
 const ring=new THREE.Mesh(new THREE.RingGeometry(.87,.99,48),new THREE.MeshBasicMaterial({color:0xc5f773,side:THREE.DoubleSide,transparent:true,opacity:.95}));ring.rotation.x=-Math.PI/2;scene.add(ring);
 const receiverRing=new THREE.Mesh(new THREE.RingGeometry(.85,.94,40),new THREE.MeshBasicMaterial({color:0x91eaff,side:THREE.DoubleSide,transparent:true,opacity:.7}));receiverRing.rotation.x=-Math.PI/2;scene.add(receiverRing);
-const arrow=new THREE.Mesh(new THREE.ConeGeometry(.25,.43,3),new THREE.MeshBasicMaterial({color:0xc5f773}));arrow.rotation.z=Math.PI;scene.add(arrow);
+const arrow=new THREE.Mesh(new THREE.ConeGeometry(.25,.43,3),new THREE.MeshBasicMaterial({color:0xc5f773}));arrow.rotation.z=Math.PI;arrow.scale.set(1/FIELD_SCALE,1,1/FIELD_SCALE);scene.add(arrow);
 // Run arrow: shows where the Q / 1~4 runner is heading, drawn flat on the turf from the runner to the target.
 const runArrowMaterial=new THREE.MeshBasicMaterial({color:0xc5f773,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});
 const runArrow=new THREE.Group(),runShaft=new THREE.Mesh(new THREE.PlaneGeometry(.42,1),runArrowMaterial),runHeadShape=new THREE.Shape();
@@ -194,7 +197,7 @@ const bc=ballTexture.getContext('2d');bc.fillStyle='#f3f4e9';bc.fillRect(0,0,512
 for(let row=0;row<5;row++)for(let col=0;col<10;col++){const x=col*56+(row%2)*28,y=row*57;bc.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;const px=x+Math.cos(a)*18,py=y+Math.sin(a)*18;i?bc.lineTo(px,py):bc.moveTo(px,py);}bc.closePath();bc.fillStyle=(row+col)%3===0?'#182831':'#e3e6dc';bc.fill();bc.strokeStyle='#9aa59c';bc.lineWidth=1.5;bc.stroke();}
 // Drawn larger and slightly self-lit than its real 22 cm so it reads from the broadcast camera.
 const BALL_VISUAL_SCALE=1.75,ballLift=VISUAL_SCALE.ballRadius*(BALL_VISUAL_SCALE-1);
-const ball=new THREE.Mesh(new THREE.SphereGeometry(VISUAL_SCALE.ballRadius,24,16),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(ballTexture),roughness:.55,emissive:0xffffff,emissiveIntensity:.22}));ball.scale.setScalar(BALL_VISUAL_SCALE);ball.castShadow=true;scene.add(ball);
+const ball=new THREE.Mesh(new THREE.SphereGeometry(VISUAL_SCALE.ballRadius,24,16),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(ballTexture),roughness:.55,emissive:0xffffff,emissiveIntensity:.22}));ball.scale.set(BALL_VISUAL_SCALE/FIELD_SCALE,BALL_VISUAL_SCALE,BALL_VISUAL_SCALE/FIELD_SCALE);ball.castShadow=true;scene.add(ball);
 const ballMarker=new THREE.Mesh(new THREE.RingGeometry(.34,.46,40),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,depthWrite:false}));ballMarker.rotation.x=-Math.PI/2;scene.add(ballMarker);
 const ballShadow=new THREE.Mesh(new THREE.CircleGeometry(.15,24),new THREE.MeshBasicMaterial({color:0x092315,transparent:true,opacity:.35,depthWrite:false}));ballShadow.rotation.x=-Math.PI/2;scene.add(ballShadow);
 for(const id of ['player-preview','home-player-preview']){const host=$(id);host.onpointerdown=e=>{if(e.button!==0)return;previewDrag={id:e.pointerId,x:e.clientX};host.setPointerCapture(e.pointerId);};host.onpointermove=e=>{if(previewDrag?.id!==e.pointerId)return;previewYaw+=(e.clientX-previewDrag.x)*.012;previewDrag.x=e.clientX;};for(const event of ['pointerup','pointercancel','lostpointercapture'])host.addEventListener(event,()=>previewDrag=null);}
@@ -330,12 +333,12 @@ const focus=new THREE.Vector3(),cameraTarget=new THREE.Vector3(),cameraPosition=
 function cameraUpdate(dt,immediate=false){
   if(drawing&&!immediate)return;
   const p=match.players[match.goalWait>0?match.celebratingPlayer:match.selected],b=match.goalWait>0&&match.goalNet?.elapsed>.9?p:match.ball;
-  if(match.phase==='shootout'){camera.position.lerp(camera.aspect<.8?new THREE.Vector3(23,20,0):new THREE.Vector3(29,15,0),immediate?1:1-Math.exp(-dt*6));camera.lookAt(49,1,0);return;}
+  if(match.phase==='shootout'){camera.position.lerp(camera.aspect<.8?new THREE.Vector3(23*FIELD_SCALE,20,0):new THREE.Vector3(29*FIELD_SCALE,15,0),immediate?1:1-Math.exp(-dt*6));camera.lookAt(49*FIELD_SCALE,1,0);return;}
   // Parallel touchline camera: screen right is always attacking right.
   const r=match.restart,s=match.attackSign(r?.team??0);
   const x=r?THREE.MathUtils.clamp(r.type==='corner'?r.x-s*8:r.type==='goalKick'?r.x+s*7:r.x+s*6,-47,47):THREE.MathUtils.clamp(match.mode==='manager'?b.x:p.x*.42+b.x*.58,match.goalWait>0?-49:-39,match.goalWait>0?49:39);
   const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
-  const ideal=new THREE.Vector3(x,0,z);
+  const ideal=new THREE.Vector3(x*FIELD_SCALE,0,z*FIELD_SCALE);
   focus.lerp(ideal,immediate?1:1-Math.exp(-dt*(r?7:4.5)));
   cameraTarget.copy(focus);
   const narrow=camera.aspect<.8;
@@ -436,7 +439,7 @@ function updateSetPieceAim(){
   if(setPieceAim.geometry.getAttribute('position').count!==points.length){setPieceAim.geometry.dispose();setPieceAim.geometry=new THREE.BufferGeometry().setFromPoints(points);}else setPieceAim.geometry.setFromPoints(points);setPieceAim.computeLineDistances();
 }
 const kickRay=new THREE.Raycaster(),kickPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);let drawing=null;
-function pitchPointer(e){const rect=renderer.domElement.getBoundingClientRect(),point=new THREE.Vector3();kickRay.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);return kickRay.ray.intersectPlane(kickPlane,point)?{x:point.x,z:point.z}:null;}
+function pitchPointer(e){const rect=renderer.domElement.getBoundingClientRect(),point=new THREE.Vector3();kickRay.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);return kickRay.ray.intersectPlane(kickPlane,point)?{x:point.x/FIELD_SCALE,z:point.z/FIELD_SCALE}:null;}
 renderer.domElement.addEventListener('pointerdown',e=>{const r=match.restart;if(e.button!==0||homeOpen||!r?.manual||!DRAWABLE_RESTARTS.has(r.type)||match.paused||match.cardWait>0)return;const point=pitchPointer(e);if(!point)return;e.preventDefault();renderer.domElement.setPointerCapture(e.pointerId);drawing={id:e.pointerId,restart:r,points:[{x:r.x,z:r.z},point]};match.setRestartPath(drawing.points);});
 renderer.domElement.addEventListener('pointermove',e=>{if(drawing?.id!==e.pointerId)return;if(match.restart!==drawing.restart){drawing=null;return;}const p=pitchPointer(e);if(p){drawing.points.push(p);if(drawing.points.length>150)drawing.points.splice(1,1);match.setRestartPath(drawing.points);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(drawing?.id===e.pointerId){const p=pitchPointer(e);if(p)drawing.points.push(p);match.setRestartPath(drawing.points);drawing=null;}});
@@ -461,7 +464,7 @@ function frame(now){
   const dt=Math.min((now-last)/1000,.1);last=now;
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
-  if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
+  if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt/FIELD_SCALE*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
   updateBallSound(dt);updateRunArrow();updateSkillHold();
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
@@ -488,8 +491,8 @@ function frame(now){
   const b=match.ball,p=match.players[match.mode==='manager'&&match.owner>=0?match.owner:match.selected];
   for(const {net,sign,base} of goalNets){const positions=net.geometry.attributes.position;for(let i=0;i<base.length;i+=3){positions.array[i]=base[i]+netOffset(base[i],base[i+1],base[i+2],sign,match.goalNet);positions.array[i+1]=base[i+1];positions.array[i+2]=base[i+2];}positions.needsUpdate=true;}
   ball.position.set(b.x,ballRenderY(b.y)+ballLift,b.z);if(active||match.goalWait>0&&!match.paused){ball.rotation.x+=b.vz*dt/VISUAL_SCALE.ballRadius;ball.rotation.z-=b.vx*dt/VISUAL_SCALE.ballRadius;}
-  ballShadow.position.set(b.x,.085,b.z);ballShadow.material.opacity=.36/(1+(b.y-.34)*.8);ballShadow.scale.setScalar(BALL_VISUAL_SCALE*(1+(b.y-.34)*.22));
-  ballMarker.position.set(b.x,.09,b.z);ballMarker.scale.setScalar(1+(b.y-.34)*.12);ballMarker.material.opacity=.6/(1+(b.y-.34)*.35);
+  ballShadow.position.set(b.x,.085,b.z);ballShadow.material.opacity=.36/(1+(b.y-.34)*.8);{const r=BALL_VISUAL_SCALE*(1+(b.y-.34)*.22);ballShadow.scale.set(r/FIELD_SCALE,r/FIELD_SCALE,r);}
+  ballMarker.position.set(b.x,.09,b.z);{const r=1+(b.y-.34)*.12;ballMarker.scale.set(r/FIELD_SCALE,r/FIELD_SCALE,r);}ballMarker.material.opacity=.6/(1+(b.y-.34)*.35);
   updateOfficialsAndCrowd(match.paused?0:dt);updateSetPieceAim();
   ring.position.set(p.x,.14,p.z);arrow.position.set(p.x,(p.profile?.height??180)/100+.48,p.z);ring.visible=arrow.visible=match.mode==='player'||match.mode==='manager'&&match.owner>=0;ring.material.color.set(match.mode==='manager'?(p.team===0?0x83c6ff:0xff777d):0xc5f773);arrow.material.color.copy(ring.material.color);
   const receiver=match.mode==='player'&&match.owner===match.selected?(match.charge?.type==='cross'?match.crossTarget(p,match.kickPower,match.input):match.charge?.type==='through'?match.throughTarget(p,match.kickPower,match.input):match.passTarget(undefined,match.charge?match.kickPower:.2)):null;receiverRing.visible=!!receiver&&match.running&&!match.ended;

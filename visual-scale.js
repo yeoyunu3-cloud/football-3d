@@ -1,5 +1,9 @@
 // Render measurements use metres; the match's existing ball rest height is a
 // simulation reference, not its visible radius. Keep flight height above turf.
+// Pitch is drawn FIELD_SCALE times larger (length and width) relative to the players. The simulation keeps
+// its coordinates; the renderer stretches the ground plane, and time/gravity are compensated so real speeds hold.
+export const FIELD_SCALE=1.2;
+export const FIELD_GRAVITY=FIELD_SCALE*FIELD_SCALE;
 export const VISUAL_SCALE=Object.freeze({pitchLength:105,pitchWidth:68,turfY:.05,ballRadius:.135,simulationBallRestY:.34,playerHeight:1.8});
 export const ballRenderY=y=>VISUAL_SCALE.turfY+VISUAL_SCALE.ballRadius+Math.max(0,y-VISUAL_SCALE.simulationBallRestY);
 export function followHeading(current,target,dt){return current+Math.atan2(Math.sin(target-current),Math.cos(target-current))*(1-Math.exp(-Math.max(0,dt)*15));}

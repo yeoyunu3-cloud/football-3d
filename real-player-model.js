@@ -1,6 +1,6 @@
 import {sculptFootballGeometry,buildHairGeometry} from './athlete-sculpt.js?v=20261112-21-remodel';
 import {reshapeAthlete} from './athlete-proportions.js?v=20261112-20-release';
-import {VISUAL_SCALE,gaitFor,strideRate} from './visual-scale.js?v=20261112-20-release';
+import {VISUAL_SCALE,gaitFor,strideRate} from './visual-scale.js?v=20261114-field';
 import * as THREE from './vendor/three.module.min.js';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {clone as cloneRig} from './vendor/utils/SkeletonUtils.js';
@@ -128,7 +128,7 @@ export function buildRealAthlete(team,index){
 export function applyRealAppearance(v,profile,uniform){
   if(!uniform)return;
   const height=profile.height??180,weight=profile.weight??77,width=THREE.MathUtils.clamp(Math.sqrt(weight/(height/100)**2/24),.83,1.24);
-  v.group.scale.set(width,height/180,width);v.head.scale.set(Math.pow(width,-.65)*(v.index%3===0?1.02:.98),.98,Math.pow(width,-.65)*.96);
+  v.group.scale.set(width/(v.fieldScale??1),height/180,width/(v.fieldScale??1));v.head.scale.set(Math.pow(width,-.65)*(v.index%3===0?1.02:.98),.98,Math.pow(width,-.65)*.96);
   const skin=new THREE.Color(profile.skin??'#e4b18f'),reference=new THREE.Color('#d4b298');v.skin.color.copy(skin).multiplyScalar(.72);v.faceMaterial.color.setRGB(Math.min(1.5,skin.r/reference.r),Math.min(1.5,skin.g/reference.g),Math.min(1.5,skin.b/reference.b));
   v.faceMaterial.userData.hairColour.value.set(profile.hair??'#292329');v.hairMaterial.color.set(profile.hair??'#292329');v.kit.color.set(0xffffff);const atlas=kitAtlas(profile,uniform);v.kit.map=atlas;v.kit.roughness=.84;if(v.handMaterial){v.handMaterial.map=null;v.handMaterial.normalMap=null;v.handMaterial.color.copy(profile.role==='GK'?new THREE.Color('#edf1ed'):skin.clone().multiplyScalar(.72));v.handMaterial.roughness=.76;}
   v.uniform=uniform;v.profile={...profile};

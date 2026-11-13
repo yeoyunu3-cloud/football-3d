@@ -1,3 +1,4 @@
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const DRAWABLE_RESTARTS=new Set(['freeKick','indirect','corner','goalKick']);
 export function cleanKickPath(start,points){
@@ -15,8 +16,8 @@ export function planSetPiece(type,start,points,sign=1){
   let bend=0;for(let i=1;i<path.length-1;i++){const p=path[i],side=((p.x-start.x)*(-dz)+(p.z-start.z)*dx)/(d||1);if(Math.abs(side)>Math.abs(bend))bend=side;}
   // Constant lateral acceleration produces a curved flight and still reaches the drawn endpoint.
   const curl=clamp(-bend*5/Math.max(.4,flight*flight),-7,7),curlX=-dz/(d||1)*curl,curlZ=dx/(d||1)*curl,offset=(flight-travel)/drag;
-  return {path,end,flight,isShot:goal,type:goal?'shoot':type==='corner'?'cross':'loft',vx:(end.x-start.x-curlX*offset)/travel,vz:(end.z-start.z-curlZ*offset)/travel,vy:(height-.34+4.905*flight*flight)/flight,curlX,curlZ};
+  return {path,end,flight,isShot:goal,type:goal?'shoot':type==='corner'?'cross':'loft',vx:(end.x-start.x-curlX*offset)/travel,vz:(end.z-start.z-curlZ*offset)/travel,vy:(height-.34+(4.905*FIELD_GRAVITY)*flight*flight)/flight,curlX,curlZ};
 }
 export function kickPreview(start,plan){
-  if(!plan)return [];const out=[];for(let i=0;i<=40;i++){const t=plan.flight*i/40,drag=.12,travel=(1-Math.exp(-drag*t))/drag,offset=(t-travel)/drag;out.push({x:start.x+plan.vx*travel+plan.curlX*offset,z:start.z+plan.vz*travel+plan.curlZ*offset,y:Math.max(.34,.34+plan.vy*t-4.905*t*t)});}return out;
+  if(!plan)return [];const out=[];for(let i=0;i<=40;i++){const t=plan.flight*i/40,drag=.12,travel=(1-Math.exp(-drag*t))/drag,offset=(t-travel)/drag;out.push({x:start.x+plan.vx*travel+plan.curlX*offset,z:start.z+plan.vz*travel+plan.curlZ*offset,y:Math.max(.34,.34+plan.vy*t-(4.905*FIELD_GRAVITY)*t*t)});}return out;
 }

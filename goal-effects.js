@@ -1,7 +1,8 @@
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function stepGoalBall(match,dt){
   const n=match.goalNet;if(!n)return;const b=match.ball;n.elapsed+=dt;
-  b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt-4.905*dt*dt;b.vy-=9.81*dt;
+  b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt-(4.905*FIELD_GRAVITY)*dt*dt;b.vy-=(9.81*FIELD_GRAVITY)*dt;
   if(b.x*n.side>54.65){b.x=n.side*54.65;b.vx=-n.side*Math.abs(b.vx)*.22;n.hitAt=n.elapsed;n.impact={y:clamp(b.y,.34,2.3),z:clamp(b.z,-3.5,3.5)};}
   if(b.x*n.side<52.9){b.x=n.side*52.9;b.vx=n.side*Math.abs(b.vx)*.2;}
   if(Math.abs(b.z)>3.45){b.z=Math.sign(b.z)*3.45;b.vz*=-.3;n.hitAt=n.elapsed;n.impact={y:clamp(b.y,.34,2.3),z:b.z};}

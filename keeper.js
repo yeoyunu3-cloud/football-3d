@@ -1,5 +1,6 @@
-import {distributionPose} from './keeper-control.js?v=20261112-20-release';
-import {forecastBall} from './ball-flight.js?v=20261113-fc2';
+import {FIELD_SCALE} from './visual-scale.js?v=20261114-field';
+import {distributionPose} from './keeper-control.js?v=20261114-field';
+import {forecastBall} from './ball-flight.js?v=20261114-field';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const length=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const predictBall=forecastBall;
@@ -120,7 +121,7 @@ export function tryKeeperSave(match,p,before){
     match.owner=p.id;match.possessionTime=0;match.receiver=-1;p.holdingBall=true;p.heldOffset={x:b.x-p.x,y:b.y,z:b.z-p.z};b.vx=b.vz=b.vy=0;
   }else{
     const outward=s*Math.max(9,Math.abs(b.vx)*.4),side=a.side;
-    b.vx=outward;b.vz=side*Math.max(a.kind==='fingertip'?11:7,Math.abs(b.vz)*.6);b.vy=a.kind==='punch'?4.5:2.1;
+    b.vx=outward;b.vz=side*Math.max(a.kind==='fingertip'?11:7,Math.abs(b.vz)*.6);b.vy=(a.kind==='punch'?4.5:2.1)*FIELD_SCALE;
     match.noCatch=.22;match.receiver=-1;
     if(['fingertip','highDive','reflex'].includes(a.kind))match.highlight={kind:'save',remaining:.55};
   }

@@ -1,5 +1,6 @@
-import {stepGoalBall} from './goal-effects.js?v=20261112-20-release';
-import {chooseKeeperAction,updateKeeper,tryKeeperSave} from './keeper.js?v=20261113-gk';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
+import {stepGoalBall} from './goal-effects.js?v=20261114-field';
+import {chooseKeeperAction,updateKeeper,tryKeeperSave} from './keeper.js?v=20261114-field';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export class Shootout {
   constructor(players,{firstTeam=0,random=Math.random}={}){
@@ -68,7 +69,7 @@ export class Shootout {
     // A late neutral reaction can block the body line but does not read the chosen corner.
     if(!this.committed&&this.elapsed>.13){this.keeperChoice=0;this.dive(match);}
     if(p.keeperAction)updateKeeper(match,p,dt);
-    b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt;b.vy-=9.81*dt;if(b.y<.34){b.y=.34;b.vy=Math.max(0,-b.vy*.25);}const drag=Math.exp(-.12*dt);b.vx*=drag;b.vz*=drag;
+    b.x+=b.vx*dt;b.z+=b.vz*dt;b.y+=b.vy*dt;b.vy-=(9.81*FIELD_GRAVITY)*dt;if(b.y<.34){b.y=.34;b.vy=Math.max(0,-b.vy*.25);}const drag=Math.exp(-.12*dt);b.vx*=drag;b.vz*=drag;
     if(p.keeperAction&&!this.saved){const adapter={ball:b,players:match.players,owner:-1,lastTouch:match.lastTouch,lastKick:{type:'shoot'},stats:{saves:[0,0]},attackSign:team=>team===this.turn?1:-1,noCatch:0,recordEvent(){}};
       if(tryKeeperSave(adapter,p,before)){this.saved=true;b.x=Math.min(b.x,52.5);p.holdingBall=false;}
     }

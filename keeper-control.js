@@ -1,3 +1,4 @@
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const isHumanKeeper=(m,p)=>m.mode==='player'&&p?.team===0&&p.index===0&&m.selected===p.id&&m.owner===p.id;
@@ -17,7 +18,7 @@ export function stepKeeperRelease(m,p,dt){
   if(a.kind==='drop'){m.owner=p.id;Object.assign(m.ball,{x:p.x+Math.sin(p.heading)*.65,z:p.z+Math.cos(p.heading)*.65,y:.34,vx:0,vz:0,vy:0,shotFlight:null});}
   else{const startY=a.kind==='throw'?1.6:.85,d=dist(p,a.point),flight=clamp(d/(a.kind==='throw'?22:30),a.kind==='throw'?.65:1,a.kind==='throw'?1.45:2),drag=.12,travel=(1-Math.exp(-drag*flight))/drag;
    m.offsideSnapshot(p.team,p.id);m.offsideExempt=false;m.owner=-1;m.lastTouch=p.id;m.lastKick={type:a.kind==='throw'?'loft':'clearance',team:p.team,isShot:false,distribution:a.kind};m.noCatch=.45;m.receiver=a.target;m.receiveTarget={...a.point};m.receiveAssist=flight+1.2;m.receiverInputRevision=m.inputRevision;
-   Object.assign(m.ball,{x:p.x+Math.sin(p.heading)*.35,z:p.z+Math.cos(p.heading)*.35,y:startY,vx:(a.point.x-p.x)/travel,vz:(a.point.z-p.z)/travel,vy:(.6-startY+4.905*flight*flight)/flight,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});
+   Object.assign(m.ball,{x:p.x+Math.sin(p.heading)*.35,z:p.z+Math.cos(p.heading)*.35,y:startY,vx:(a.point.x-p.x)/travel,vz:(a.point.z-p.z)/travel,vy:(.6-startY+(4.905*FIELD_GRAVITY)*flight*flight)/flight,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});
    m.stats.passes[p.team]++;m.recordEvent(a.kind==='throw'?'keeperThrow':'keeperVolley',p.team,p.id);if(p.team===0&&m.mode==='player'&&a.target>=0)m.selected=a.target;
   }
  }

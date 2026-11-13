@@ -1,7 +1,8 @@
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
 import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261112-20-release';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261113-5';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-field';
 import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261112-20-release';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261112-20-release';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-field';
 import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261112-20-release';
 import {shapeTarget} from './formation-shape.js?v=20261112-20-release';
 import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261113-shape';
@@ -10,12 +11,12 @@ import {planThroughPass} from './through-pass.js?v=20261112-20-release';
 import {planCelebration,celebrationStep} from './celebration-route.js?v=20261112-20-release';
 import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261112-20-release';
 import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261112-20-release';
-import {flightStep,planShot} from './ball-flight.js?v=20261113-fc2';
-import {stepGoalBall} from './goal-effects.js?v=20261112-20-release';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-field';
+import {stepGoalBall} from './goal-effects.js?v=20261114-field';
 import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261112-20-release';
-import {Shootout} from './shootout.js?v=20261112-20-release';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261112-20-release';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261113-gk';
+import {Shootout} from './shootout.js?v=20261114-field';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-field';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-field';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -199,7 +200,7 @@ export class Match {
       const target=chosen??targets[0],point=target?{x:target.x,z:target.z}:{x:clamp(r.x+dir.x*(8+power*10),-49,49),z:r.z+inward*(8+power*12)};
       const d=distance(r,point),flight=clamp(.65+d*.025,.8,1.3),drag=.12,travel=(1-Math.exp(-drag*flight))/drag;
       const height=2.25*(taker.profile?.height??180)/180;
-      const velocity={vx:(point.x-r.x)/travel,vz:(point.z-r.z)/travel,vy:(.65-height+4.905*flight*flight)/flight};
+      const velocity={vx:(point.x-r.x)/travel,vz:(point.z-r.z)/travel,vy:(.65-height+(4.905*FIELD_GRAVITY)*flight*flight)/flight};
       this.receiver=target?.id??-1;this.receiveTarget=point;this.receiveAssist=flight+1.5;this.receiverInputRevision=this.inputRevision;
       if(r.team===0&&this.mode==='player'&&target)this.selected=target.id;
       taker.heading=Math.atan2(point.x-r.x,point.z-r.z);taker.throwAnim=.65;taker.kickAnim=0;
@@ -338,9 +339,9 @@ export class Match {
     if(!this.charge||this.charge.type!==type)return false;
     const charge=this.charge;this.charge=null;const chargeEnd=charge.releasedAt??this.controlTime;
     if(charge.player!==this.selected)return false;
-    if(this.restart?.manual&&this.restart.readyAfter>0){this.restart.queuedKick={type,power:clamp((chargeEnd-charge.start)/.7,.12,1),shotStyle:charge.shotStyle};return true;}
-    const keeper=this.players[this.selected];if(isHumanKeeper(this,keeper)&&keeper.holdingBall)return startKeeperRelease(this,keeper,type==='pass'||type==='through'?'throw':'sideVolley',clamp((chargeEnd-charge.start)/.7,.12,1));
-    return this.kick(type,clamp((chargeEnd-charge.start)/.7,.12,1),charge.shotStyle);
+    if(this.restart?.manual&&this.restart.readyAfter>0){this.restart.queuedKick={type,power:clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1),shotStyle:charge.shotStyle};return true;}
+    const keeper=this.players[this.selected];if(isHumanKeeper(this,keeper)&&keeper.holdingBall)return startKeeperRelease(this,keeper,type==='pass'||type==='through'?'throw':'sideVolley',clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1));
+    return this.kick(type,clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1),charge.shotStyle);
   }
   dropKeeperBall(){const p=this.players[this.selected];return isHumanKeeper(this,p)&&startKeeperRelease(this,p,'drop',0);}
   modifyShotStyle(style){if(!this.charge||this.charge.type!=='shoot'||!['chip','power','finesse','low','rabona'].includes(style))return false;this.charge.shotStyle=style;return true;}
@@ -434,7 +435,7 @@ export class Match {
     p.x=clamp(p.x+p.vx*dt,-54,54);p.z=clamp(p.z+p.vz*dt,-35.5,35.5);
     if(m.heading!==undefined)p.heading=m.heading;else if(Math.hypot(p.vx,p.vz)>.6)p.heading=turn(p.heading,Math.atan2(p.vx,p.vz),dt*10);
     k.ball={f:m.bf??.75,l:m.bl??0,y:m.by??0};
-    if(m.release&&!k.released&&this.owner===p.id){k.released=true;const r=m.release,b=this.ball;this.owner=-1;Object.assign(b,{vx:p.vx+s*r.f,vz:p.vz-s*(r.l??0),vy:r.y,y:Math.max(b.y,.4),shotFlight:null,flightDrag:null,curveRemaining:0});this.lastTouch=p.id;this.noCatch=r.noCatch??.25;this.possessionTime=0;this.receiver=-1;}
+    if(m.release&&!k.released&&this.owner===p.id){k.released=true;const r=m.release,b=this.ball;this.owner=-1;Object.assign(b,{vx:p.vx+s*r.f,vz:p.vz-s*(r.l??0),vy:r.y*FIELD_SCALE,y:Math.max(b.y,.4),shotFlight:null,flightDrag:null,curveRemaining:0});this.lastTouch=p.id;this.noCatch=r.noCatch??.25;this.possessionTime=0;this.receiver=-1;}
     if(u>=1)p.skill=null;
   }
   // Q while defending (기본수비 "수비 도움 요청"): the second defender goes to the ball for a moment.
@@ -454,7 +455,7 @@ export class Match {
     this.owner=-1;Object.assign(b,{x:p.x+dx*.7,z:p.z+dz*.7,y:.34,vx:dx*push,vz:dz*push,vy:0,shotFlight:null,flightDrag:1.2,curveRemaining:0});
     this.lastTouch=p.id;this.noCatch=.3;this.possessionTime=0;this.receiver=-1;p.kickAnim=.2;p.kickStyle='pass';p.heading=Math.atan2(dx,dz);return true;
   }
-  get kickPower(){return this.charge?clamp(((this.charge.releasedAt??this.controlTime)-this.charge.start)/.7,.12,1):0;}
+  get kickPower(){return this.charge?clamp(((this.charge.releasedAt??this.controlTime)-this.charge.start)/(.7/FIELD_SCALE),.12,1):0;}
   laneClearance(from,to,team) {
     let clearance=12;
     for(const opponent of this.players)if(!opponent.sentOff&&opponent.team!==team)clearance=Math.min(clearance,segmentDistance(opponent,from,to));
@@ -523,7 +524,7 @@ export class Match {
         speed=clamp(Math.hypot(tx-b.x,tz-b.z)*drag/(1-Math.exp(-drag*flight)),type==='cross'?10:6,42);
         if(!airPass){b.y=.34;b.flightDrag=type==='through'?throughPlan.drag:.32;}
         const arrive=lobThrough?.6:type==='cross'?(shotStyle==='low'?.75:shotStyle==='early'?1.5:shotStyle==='bounce'?.34:2.05):1.1;
-        loft=airPass?(arrive-b.y+4.905*flight*flight)/flight:0;
+        loft=airPass?(arrive-b.y+(4.905*FIELD_GRAVITY)*flight*flight)/flight:0;
         this.receiver=target.id;this.receiveTarget={x:tx,z:tz};this.receiveAssist=flight+.9;this.receiverInputRevision=this.inputRevision;
         if(type==='through'||type==='pass'&&shotStyle==='lead'){target.runUntil=this.time+flight+1.2;target.runTarget={x:tx,z:tz};}
         if(type==='cross'){this.crossUntil=this.time+flight+1.2;this.crossTeam=p.team;this.crossPoint={x:tx,z:tz};target.runUntil=this.crossUntil;target.runTarget={x:tx,z:tz};}
@@ -541,7 +542,7 @@ export class Match {
       const human=p.id===this.selected&&this.mode==='player',distanceToGoal=Math.abs(tx-b.x);
       const side=keeper.z+keeper.vz*.12>=0?-1:1;
       tz=this.setPieceContext?this.setPieceContext.aimZ:!human&&Number.isFinite(p.aiShotAimZ)?p.aiShotAimZ:human&&Math.abs(inputZ)>.2?inputZ*3.05:side*(distanceToGoal<14?2.45:2.7)+Math.sin(this.time*1.7+p.id)*.22;
-      keeper.reaction=clamp((distance(p,keeper)<14?.07:.16)+(Math.abs(keeper.vz)>2?.04:0)+(keeper.decision>0?.04:0)+(human?.05:0)+Math.sin(this.time*.71+p.id)*.035,.055,.28);speed=clamp(27+power*11+Math.abs(tx-p.x)*.05,29,39);const flight=Math.hypot(tx-b.x,tz-b.z)/speed;loft=clamp(((human?1.15:.6)-b.y+4.905*flight*flight)/Math.max(.12,flight),.45,6.8);
+      keeper.reaction=clamp((distance(p,keeper)<14?.07:.16)+(Math.abs(keeper.vz)>2?.04:0)+(keeper.decision>0?.04:0)+(human?.05:0)+Math.sin(this.time*.71+p.id)*.035,.055,.28);speed=clamp(27+power*11+Math.abs(tx-p.x)*.05,29,39);const flight=Math.hypot(tx-b.x,tz-b.z)/speed;loft=clamp(((human?1.15:.6)-b.y+(4.905*FIELD_GRAVITY)*flight*flight)/Math.max(.12,flight),.45,6.8);
       this.stats.shots[p.team]++;this.receiver=-1;p.aiShotAimZ=null;
     }
     this.recordEvent(type,p.team,p.id,{power});observeAction(this,p,type,{x:tx,z:tz});
@@ -732,7 +733,7 @@ export class Match {
     const b=this.ball,s=this.attackSign(p.team),pressure=this.nearest(1-p.team,p),side=p.z!==0?Math.sign(p.z):pressure?(p.z>=pressure.z?1:-1):1;
     const targets=this.players.filter(q=>q.team===p.team&&q.index>0&&!q.sentOff&&(q.x-p.x)*s>8&&distance(q,p)<48).sort((a,b)=>this.laneClearance(p,b,p.team)-this.laneClearance(p,a,p.team));
     const target=targets.find(q=>this.laneClearance(p,q,p.team)>2.5),point=target?{x:target.x+s*2,z:target.z}:{x:clamp(p.x+s*36,-40,40),z:side*26},d=distance(b,point),flight=clamp(d/27,.7,1.9),travel=(1-Math.exp(-.12*flight))/.12;
-    Object.assign(b,{y:.34,vx:(point.x-b.x)/travel,vz:(point.z-b.z)/travel,vy:(.7-.34+4.905*flight*flight)/flight,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});
+    Object.assign(b,{y:.34,vx:(point.x-b.x)/travel,vz:(point.z-b.z)/travel,vy:(.7-.34+(4.905*FIELD_GRAVITY)*flight*flight)/flight,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});
     this.owner=-1;this.lastTouch=p.id;this.lastKick={type:'clearance',team:p.team,isShot:false};this.noCatch=.28;this.receiver=target?.id??-1;this.receiveTarget=point;this.receiveAssist=target?flight+1.3:0;this.offside=null;this.directRestart=null;p.holdingBall=false;p.kickAnim=.28;p.decision=.6;p.keeperIntent='clear';this.recordEvent('clearance',p.team,p.id);if(target&&p.team===0&&this.mode==='player')this.selected=target.id;
   }
   updateKeepers(dt){for(const p of this.players)if(p.index===0&&!p.sentOff){
@@ -918,7 +919,7 @@ export class Match {
     if(this.phase==='shootout'){this.shootout.step(this,dt);return;}
     if(this.phase==='play'&&this.goalWait<=0&&this.cardWait<=0&&!this.kickoffState){
       this.halfStarted=true;const lost=Boolean(this.restart||this.throwState);
-      const due=advanceClock(this,dt,lost);
+      const due=advanceClock(this,dt*FIELD_SCALE,lost);
       if(this.penaltyInFlight){this.penaltyFlightElapsed+=dt;if(this.restart||this.goalWait>0||this.owner>=0||this.penaltyFlightElapsed>5||Math.abs(this.ball.vx)<2)this.penaltyInFlight=false;}
       if(due&&this.restart?.type!=='penalty'&&!this.penaltyInFlight){this.endHalf();return;}
     }
