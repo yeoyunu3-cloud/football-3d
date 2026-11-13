@@ -139,6 +139,8 @@ export function teamShapeTarget(m,p,carrier,primary){
     }
     if(primary?.id===p.id)return primaryPress(m,p,carrier);
     const state=m.teamAI?.[p.team];
+    // Q (수비 도움 요청): the human's second defender goes straight at the ball for a moment.
+    if(p.team===0&&m.helpPressUntil>m.time&&state?.secondary===p.id)return {x:m.ball.x,z:m.ball.z,speed:8.4};
     if(state?.secondary===p.id&&pressTrigger(m,carrier,{block:false})&&dist(p,carrier)<10)return coverPress(m,p,carrier,primary);
     return defendBlock(m,p,m.ball,carrier);
   }

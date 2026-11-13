@@ -9,9 +9,9 @@ import {paintKit} from './kit-art.js?v=20261112-20-release';
 import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261112-20-release';
 import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261112-20-release';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-passes';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_PATTERNS,SKILL_HOLDS,relativeArrow,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-skills';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-passes';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-skills';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
@@ -28,7 +28,7 @@ for(const [key,options] of Object.entries(TACTIC_OPTIONS))for(const [host,prefix
 $('tactics-panel').append(document.querySelector('.match-stats'));
 let controlPreset=DEFAULT_PRESET;try{controlPreset=validPreset(localStorage.getItem('soccer-controls'));}catch{}
 const controls=()=>CONTROL_PRESETS[controlPreset];
-function showControls(){const c=controls();const entries=[[c.move,'이동'],[keyLabel(c.sprint),'달리기'],[keyLabel(c.switch),'선수 전환'],[keyLabel(c.pass),'패스'],[keyLabel(c.through),'스루패스'],[keyLabel(c.cross),'크로스'],[keyLabel(c.shoot),'슛·헤딩'],['Esc','경기 메뉴']];for(const host of [$('player-setup'),document.querySelector('.controls-hint')]){host.replaceChildren(...entries.map(([key,label])=>{const span=document.createElement('span'),kbd=document.createElement('kbd');kbd.textContent=key;span.append(kbd,` ${label}`);return span;}));{const extra=document.createElement('small');extra.className='shot-controls';extra.textContent=c.shotMods.map(([key,style])=>`${keyLabel(key)} + ${keyLabel(c.shoot)} ${SHOT_LABELS[style]}`).join(' · ')+(c.runCall?` · ${keyLabel(c.runCall)} 침투 · ${Object.entries(c.runAngles).map(([key,deg])=>`${key} ${deg}°`).join(' / ')} 침투 각도`:'')+(c.defendSwitch?` · 수비: ${keyLabel(c.defendSwitch)} 선수 변경 · ${keyLabel(c.tackle)} 태클 · ${keyLabel(c.slideTackle)} 슬라이딩 · 공격: ${keyLabel(c.cross)}${keyLabel(c.cross)} 땅볼 크로스 · ${keyLabel(c.cross)}${keyLabel(c.cross)}${keyLabel(c.cross)} 낮은 크로스 · Q + ${keyLabel(c.cross)} 얼리 크로스 · Z + ${keyLabel(c.cross)} 감아 크로스 · Z + ${keyLabel(c.pass)} 감아 패스 · Q + ${keyLabel(c.pass)} 침투 패스 · C + ${keyLabel(c.pass)} 플레어 패스 · Q + ${keyLabel(c.through)} 로빙 스루 · Z + ${keyLabel(c.through)} 침투 스루 · ${keyLabel(c.shoot)}${keyLabel(c.shoot)} 깔아차기 · ${keyLabel(c.sprint)}${keyLabel(c.sprint)} / ${keyLabel(c.knockOn)} 치고 달리기 · ${c.cancel.map(keyLabel).join(' + ')} 취소 · GK ${keyLabel(c.keeperDrop)} 공 놓기`:'');host.append(extra);}}}
+function showControls(){const c=controls();const entries=[[c.move,'이동'],[keyLabel(c.sprint),'달리기'],[keyLabel(c.switch),'선수 전환'],[keyLabel(c.pass),'패스'],[keyLabel(c.through),'스루패스'],[keyLabel(c.cross),'크로스'],[keyLabel(c.shoot),'슛·헤딩'],['Esc','경기 메뉴']];for(const host of [$('player-setup'),document.querySelector('.controls-hint')]){host.replaceChildren(...entries.map(([key,label])=>{const span=document.createElement('span'),kbd=document.createElement('kbd');kbd.textContent=key;span.append(kbd,` ${label}`);return span;}));{const extra=document.createElement('small');extra.className='shot-controls';extra.textContent=c.shotMods.map(([key,style])=>`${keyLabel(key)} + ${keyLabel(c.shoot)} ${SHOT_LABELS[style]}`).join(' · ')+(c.defendSwitch?` · ${keyLabel(c.shoot)}${keyLabel(c.shoot)} 깔아차기 · 수비: ${keyLabel(c.tackle)} 스탠딩 태클 · ${keyLabel(c.slideTackle)} 슬라이딩 · ${keyLabel(c.defendSwitch)} 선수 변경 · ${keyLabel(c.helpDefend)} 수비 도움 요청 · Shift + 방향키 선수 바꾸기 · 패스: Q + ${keyLabel(c.pass)} 침투 패스 · C + ${keyLabel(c.pass)} 플레어 패스 · Z + ${keyLabel(c.pass)} 드라이브 땅볼 · Q + ${keyLabel(c.through)} 로빙 스루 · Z + ${keyLabel(c.through)} 침투 스루 · 크로스: Q + ${keyLabel(c.cross)} 얼리 · ${keyLabel(c.cross)}${keyLabel(c.cross)} 땅볼 · ${keyLabel(c.cross)}${keyLabel(c.cross)}${keyLabel(c.cross)} 낮은 · Z + ${keyLabel(c.cross)} 바운싱 로빙 · 개인기: ${keyLabel(c.feint)} 페인팅 · Shift + 방향키 조합 · Z + ← 드래그 백 · ${keyLabel(c.shoot)} 후 ${keyLabel(c.fakeWith)} 슛 페이크 · ${keyLabel(c.cross)} 후 ${keyLabel(c.fakeWith)} 패스 페이크 · ${keyLabel(c.knockOn)} 퍼스트 터치 · ${Object.keys(c.runAngles).join('~').replace(/~.*~/,'~')} 각도 침투 · ${c.cancel.map(keyLabel).join(' + ')} 취소 · GK ${keyLabel(c.keeperDrop)} 공 놓기`:'');host.append(extra);}}}
 $('control-preset').value=controlPreset;$('control-preset').onchange=()=>{releaseInputs();controlPreset=validPreset($('control-preset').value);try{localStorage.setItem('soccer-controls',controlPreset);}catch{notify('설정 저장 실패','이번 실행에는 적용되지만 다시 열면 초기화될 수 있습니다.');}showControls();};showControls();
 
 let renderer;
@@ -258,6 +258,25 @@ const physicalKeys={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyQ:'q',KeyE:'e',KeyR:'
 // Double-tap state: a released cross/shot waits DOUBLE_TAP_MS for a second tap (땅볼 크로스 / 깔아차기).
 let tapRelease=null,lastTap={};const suppressKeyup=new Set();
 function clearTapRelease(){if(tapRelease)clearTimeout(tapRelease.timer);tapRelease=null;}
+// Skill input: Shift + arrow taps are buffered (relative to the attacking direction) and matched shortly after
+// the last tap; a single Shift + arrow held still triggers the hold moves. Shift + arrow on defence switches player.
+let skillBuffer=[],skillTimer=null,skillHold=null;
+function skillInput(key){
+  const c=controls();if(!c.skill)return false;const ctx=actionContext(),dir=relativeArrow(key,match.attackSign(0));if(!dir)return false;
+  if(keys.has(c.skill)&&!ctx.attacking){const v={F:[1,0],B:[-1,0],L:[0,-1],R:[0,1]}[dir],s=match.attackSign(0);return match.switchToward(v[0]*s,v[1]*s);}
+  if(!ctx.attacking||match.charge)return false;
+  if(keys.has('z')&&!keys.has(c.skill)&&dir==='B')return match.startSkill('dragBack',1);
+  if(!keys.has(c.skill))return false;
+  skillBuffer.push(dir);skillHold={dir,at:performance.now(),fired:false};clearTimeout(skillTimer);
+  skillTimer=setTimeout(()=>{const seq=skillBuffer.join(',');skillBuffer=[];const hit=SKILL_PATTERNS.find(([pattern])=>pattern===seq)??SKILL_PATTERNS.find(([pattern])=>pattern===seq.split(',').at(-1));if(hit&&!skillHold?.fired){skillHold&&(skillHold.fired=true);start();match.startSkill(hit[1],hit[2]);}},160);
+  return false;
+}
+function updateSkillHold(){
+  const c=controls();if(!skillHold||skillHold.fired||!c.skill||!keys.has(c.skill)){if(skillHold&&!keys.has(c.skill??''))skillHold=null;return;}
+  const held=['arrowup','arrowdown','arrowleft','arrowright'].filter(k=>keys.has(k));
+  if(held.length!==1||relativeArrow(held[0],match.attackSign(0))!==skillHold.dir||performance.now()-skillHold.at<350)return;
+  const move=SKILL_HOLDS[skillHold.dir];skillHold.fired=true;clearTimeout(skillTimer);skillBuffer=[];if(move&&actionContext().attacking){start();match.startSkill(move[0],move[1]);}
+}
 const inputKey=e=>physicalKeys[e.code]??e.key.toLowerCase();
 const actionContext=()=>({throwing:match.restart?.type==='throw'&&match.selected===match.restart.taker,defending:!match.restart&&match.owner>=0&&match.players[match.owner]?.team===1,attacking:!match.restart&&match.owner>=0&&match.owner===match.selected});
 window.addEventListener('keydown',e=>{
@@ -278,12 +297,15 @@ window.addEventListener('keydown',e=>{
       else match.modifyKickStyle(triple);
       sampleInput();endAction(type);return;}
     const now=performance.now(),doubleTapped=!e.repeat&&now-(lastTap[key]??-1e9)<280;if(!e.repeat)lastTap[key]=now;
-    if(!e.repeat&&controls().knockOn&&(key===controls().knockOn||key===controls().sprint&&doubleTapped)){sampleInput();if(match.knockOn()){lastTap[key]=-1e9;return;}}
+    if(!e.repeat&&controls().knockOn&&key===controls().knockOn){sampleInput();if(match.knockOn())return;}
+    // D 후 S / A 후 S: a charging shot or cross turned into a fake.
+    if(!e.repeat&&key===controls().fakeWith&&['shoot','cross'].includes(match.charge?.type)){clearTapRelease();sampleInput();if(match.fakeKick())return;}
+    if(!e.repeat&&key.startsWith('arrow')&&skillInput(key))return;
     if(['q','c','z'].includes(key)&&['pass','through','cross'].includes(match.charge?.type)){const style=kickStyleFor(match.charge.type,keys);if(style!=='auto')match.modifyKickStyle(style);sampleInput();return;}
     if(shotModKeys(controlPreset).includes(key)&&match.charge?.type==='shoot'){match.modifyShotStyle(shotStyleFor(keys,'auto',controlPreset));sampleInput();return;}
     // Read directional input before a same-frame pass or shot.
     sampleInput();
-    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
+    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'){start();const side=Math.sign(-match.input.z*match.attackSign(0))||1;match.startSkill(keys.has(controls().sprint)?'bigFeint':'feint',side);}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
   }
 });
 window.addEventListener('keyup',e=>{const key=inputKey(e),action=actionFor(key,controlPreset,{...actionContext(),defending:false,attacking:false});keys.delete(key);if(suppressKeyup.delete(key))return;
@@ -440,7 +462,7 @@ function frame(now){
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
   if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
-  updateBallSound(dt);updateRunArrow();
+  updateBallSound(dt);updateRunArrow();updateSkillHold();
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
     const relocated=visual.lastX===undefined||Math.hypot(p.x-visual.lastX,p.z-visual.lastZ)>4;visual.renderHeading=relocated?p.heading:followHeading(visual.renderHeading,p.heading,match.paused?0:dt);visual.lastX=p.x;visual.lastZ=p.z;
