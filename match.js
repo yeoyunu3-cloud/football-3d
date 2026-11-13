@@ -191,7 +191,7 @@ export class Match {
   releaseDrawnRestart(){
     const r=this.restart,plan=r?.plan;if(!r?.manual||!plan||r.readyAfter>0||this.paused||this.cardWait>0)return false;
     const p=this.players[r.taker];releaseWall(this,r);this.restart=null;this.charge=this.pending=null;this.owner=-1;this.lastTouch=p.id;this.possessionTime=0;this.noCatch=.3;
-    this.offsideExempt=['corner','goalKick'].includes(r.type);this.offsideSnapshot(r.team,p.id);
+    this.offsideExempt=['throw','corner','goalKick'].includes(r.type);this.offsideSnapshot(r.team,p.id);
     Object.assign(this.ball,{x:r.x,z:r.z,y:.34,vx:plan.vx,vz:plan.vz,vy:plan.vy,curlX:plan.curlX,curlZ:plan.curlZ,curveRemaining:plan.flight});
     p.kickAnim=.28;p.heading=Math.atan2(plan.vx,plan.vz);p.decision=.6;this.lastKick={type:plan.type,team:r.team,isShot:plan.isShot};
     if(plan.isShot)this.stats.shots[r.team]++;else this.stats.passes[r.team]++;
@@ -632,7 +632,10 @@ export class Match {
     }
     if(own&&this.attackPlans?.[p.team]){const planned=attackPosition(this,p,carrier,this.attackPlans[p.team],{x,z,speed});x=planned.x;z=planned.z;speed=planned.speed;}
     // A run the player asked for (Q / 1~4) beats the onside hold and shape logic: timing the pass is the player's job.
-    if(this.calledRun?.id===p.id&&this.calledRun.until>this.time&&p.runUntil>this.time&&p.runTarget)return {x:clamp(p.runTarget.x,-50.3,50.3),z:clamp(p.runTarget.z,-32,32),speed:9.6};
+    if(this.calledRun?.id===p.id&&this.calledRun.until>this.time&&p.runUntil>this.time&&p.runTarget){
+      // Until the pass is played he times the run on the offside line (Law 11), then bursts in behind.
+      let rx=p.runTarget.x;if(carrier?.team===p.team){const line=Math.max(0,b.x*s,this.players.filter(o=>o.team!==p.team&&!o.sentOff).map(o=>o.x*s).sort((a,c)=>c-a)[1]??52.5);rx=s*Math.min(rx*s,line-.45);}
+      return {x:clamp(rx,-50.3,50.3),z:clamp(p.runTarget.z,-32,32),speed:9.6};}
     if(own){const support=openSupport(this,p,carrier,{x,z,speed});x=support.x;z=support.z;speed=support.speed;}
     if(other){const cover=coverTarget(this,p,carrier,{x,z,speed});x=cover.x;z=cover.z;speed=cover.speed;}
     if(own){const backLine=this.players.filter(o=>o.team!==p.team&&!o.sentOff).map(o=>o.x*s).sort((a,b)=>b-a);x=s*Math.min(x*s,Math.max(bx,backLine[1]??50)-.65);}
@@ -800,7 +803,10 @@ export class Match {
       if(hard){const speed=Math.hypot(b.vx,b.vz)||1,nx=(b.x-candidate.x),nz=(b.z-candidate.z),side=(nx*b.vz-nz*b.vx)>=0?1:-1;
         const vx=b.vx*.48+candidate.vx*.2+(-b.vz/speed)*side*2.2,vz=b.vz*.48+candidate.vz*.2+(b.vx/speed)*side*2.2;
         Object.assign(b,{vx,vz,vy:.6+relative*.025,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});candidate.controlCooldown=.32;candidate.trap=.08;this.lastTouch=candidate.id;this.noCatch=.2;this.receiver=-1;this.receiveAssist=0;
-        this.offside=null;this.directRestart=null;this.recordEvent(this.lastKick?.isShot?'block':'heavyTouch',candidate.team,candidate.id,{speed:Math.round(relative)});if(this.lastKick?.isShot)this.lastKick={...this.lastKick,isShot:false,deflected:true};return;
+        // Law 11: a deflection or block by an opponent does not reset offside; a deliberate (heavy) touch does,
+        // and a touch by a teammate is a new moment the offside line is judged from.
+        if(this.offside?.team===candidate.team)this.offsideSnapshot(candidate.team,candidate.id);else if(!this.lastKick?.isShot)this.offside=null;
+        this.directRestart=null;this.recordEvent(this.lastKick?.isShot?'block':'heavyTouch',candidate.team,candidate.id,{speed:Math.round(relative)});if(this.lastKick?.isShot)this.lastKick={...this.lastKick,isShot:false,deflected:true};return;
       }
       const finishCross=intended&&this.lastKick?.type==='cross'&&candidate.x*this.attackSign(candidate.team)>28&&this.receiveAssist>0&&!this.charge;
       const throughRun=intended&&this.lastKick?.type==='through'?{...candidate.runTarget}:null;if(throughRun){candidate.firstTouchTarget=throughRun;candidate.firstTouchRunUntil=this.time+clamp(distance(candidate,throughRun)/9.2,.35,1.1);}
