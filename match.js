@@ -3,7 +3,7 @@ import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=2026111
 import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261112-20-release';
 import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261112-20-release';
 import {shapeTarget} from './formation-shape.js?v=20261112-20-release';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261112-20-release';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261113-zonal';
 import {attackPlan,attackPosition} from './attacking.js?v=20261112-20-release';
 import {planThroughPass} from './through-pass.js?v=20261112-20-release';
 import {planCelebration,celebrationStep} from './celebration-route.js?v=20261112-20-release';
@@ -371,7 +371,7 @@ export class Match {
     const roleBonus={ST:6,LW:5,RW:5,LM:5,RM:5,AM:4,CM:1,LB:-4,RB:-4};
     let runner=null,rank=-Infinity;
     for(const r of this.players){if(r.team!==0||r.index===0||r.sentOff||r.id===carrier.id)continue;
-      const score=(roleBonus[r.role]??-10)+r.x*s*.25-Math.max(0,distance(r,carrier)-25)*.3;
+      const score=(roleBonus[r.role]??-10)+r.x*s*.2-Math.max(0,distance(r,carrier)-16)*.55;
       if(score>rank){rank=score;runner=r;}}
     if(!runner)return null;
     let dx,dz;
@@ -603,8 +603,12 @@ export class Match {
       if(primary?.id===p.id){
         // Close down from the goal side; at tackling range aim for the exposed ball.
         const close=distance(p,carrier)<4,human=this.mode==='player'&&carrier.team===0&&carrier.id===this.selected;
-        // Against the human carrier, jockey goal-side instead of lunging at the ball, and close down slower.
-        if(human){x=carrier.x-s*1.9+carrier.vx*.12;z=carrier.z+carrier.vz*.12;speed=close?Math.min(6.8,Math.hypot(carrier.vx,carrier.vz)+1.2):Math.min(8,7.6*pressure);}
+        // Against the human carrier, defend the space like a person would: hold a goal-side position
+        // a few metres off and only step in when he comes close or reaches the danger zone.
+        if(human){const ownGoal={x:-s*52.5,z:0},danger=distance(carrier,ownGoal)<34,gap=distance(p,carrier),carry=Math.hypot(carrier.vx,carrier.vz);
+          const gx=ownGoal.x-carrier.x,gz=ownGoal.z-carrier.z,gl=Math.hypot(gx,gz)||1,standOff=danger?1.9:gap<6?3.5:7;
+          x=carrier.x+gx/gl*standOff+carrier.vx*.12;z=carrier.z+gz/gl*standOff+carrier.vz*.12;
+          speed=danger?(close?Math.min(6.8,carry+1.2):Math.min(7.4,7*pressure)):gap<6?Math.min(6.4,carry+.6):5.6;}
         else{x=close?b.x+carrier.vx*.08:carrier.x-s*1.7+carrier.vx*.15;
         z=close?b.z+carrier.vz*.08:carrier.z+carrier.vz*.15;speed=Math.min(8.6,8.2*pressure);}
       }else{

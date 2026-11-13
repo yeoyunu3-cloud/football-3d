@@ -11,7 +11,7 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261112-20-release';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-angles';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-fc4';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-zonal';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
@@ -172,6 +172,23 @@ function showHome(){
 const ring=new THREE.Mesh(new THREE.RingGeometry(.87,.99,48),new THREE.MeshBasicMaterial({color:0xc5f773,side:THREE.DoubleSide,transparent:true,opacity:.95}));ring.rotation.x=-Math.PI/2;scene.add(ring);
 const receiverRing=new THREE.Mesh(new THREE.RingGeometry(.85,.94,40),new THREE.MeshBasicMaterial({color:0x91eaff,side:THREE.DoubleSide,transparent:true,opacity:.7}));receiverRing.rotation.x=-Math.PI/2;scene.add(receiverRing);
 const arrow=new THREE.Mesh(new THREE.ConeGeometry(.25,.43,3),new THREE.MeshBasicMaterial({color:0xc5f773}));arrow.rotation.z=Math.PI;scene.add(arrow);
+// Run arrow: shows where the Q / 1~4 runner is heading, drawn flat on the turf from the runner to the target.
+const runArrowMaterial=new THREE.MeshBasicMaterial({color:0xc5f773,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});
+const runArrow=new THREE.Group(),runShaft=new THREE.Mesh(new THREE.PlaneGeometry(.42,1),runArrowMaterial),runHeadShape=new THREE.Shape();
+runHeadShape.moveTo(-.75,0);runHeadShape.lineTo(.75,0);runHeadShape.lineTo(0,-1.3);runHeadShape.closePath();
+const runHead=new THREE.Mesh(new THREE.ShapeGeometry(runHeadShape),runArrowMaterial);runShaft.rotation.x=runHead.rotation.x=-Math.PI/2;runArrow.add(runShaft,runHead);runArrow.visible=false;scene.add(runArrow);
+// A short copy at the passer's feet, so the run direction is visible even when the runner is off screen.
+const runCue=runArrow.clone();runCue.scale.setScalar(.8);runCue.children[0].scale.y=2.2;runCue.children[0].position.z=1.1;runCue.children[1].position.z=2.2;scene.add(runCue);
+function updateRunArrow(){
+  const run=match.calledRun,r=run&&run.until>match.time?match.players[run.id]:null,t=r?.runUntil>match.time?r.runTarget:null;
+  const dx=t?t.x-r.x:0,dz=t?t.z-r.z:0,len=Math.hypot(dx,dz),carrier=match.owner>=0?match.players[match.owner]:null;
+  runArrow.visible=Boolean(t)&&len>1.4&&!homeOpen;runCue.visible=runArrow.visible&&carrier?.team===0&&carrier.id!==r.id;
+  if(runCue.visible){runCue.position.set(carrier.x+Math.sin(runArrow.rotation.y=Math.atan2(dx,dz))*1.1,.11,carrier.z+Math.cos(runArrow.rotation.y)*1.1);runCue.rotation.y=runArrow.rotation.y;}
+  if(!runArrow.visible)return;
+  runArrow.position.set(r.x,.1,r.z);runArrow.rotation.y=Math.atan2(dx,dz);
+  const shaft=Math.max(.1,len-1.3);runShaft.scale.y=shaft;runShaft.position.z=shaft/2;runHead.position.z=shaft;
+  runArrowMaterial.opacity=.85*Math.min(1,(r.runUntil-match.time)/.4);
+}
 const ballTexture=document.createElement('canvas');ballTexture.width=512;ballTexture.height=256;
 const bc=ballTexture.getContext('2d');bc.fillStyle='#f3f4e9';bc.fillRect(0,0,512,256);
 for(let row=0;row<5;row++)for(let col=0;col<10;col++){const x=col*56+(row%2)*28,y=row*57;bc.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;const px=x+Math.cos(a)*18,py=y+Math.sin(a)*18;i?bc.lineTo(px,py):bc.moveTo(px,py);}bc.closePath();bc.fillStyle=(row+col)%3===0?'#182831':'#e3e6dc';bc.fill();bc.strokeStyle='#9aa59c';bc.lineWidth=1.5;bc.stroke();}
@@ -419,7 +436,7 @@ function frame(now){
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
   if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
-  updateBallSound(dt);
+  updateBallSound(dt);updateRunArrow();
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
     const relocated=visual.lastX===undefined||Math.hypot(p.x-visual.lastX,p.z-visual.lastZ)>4;visual.renderHeading=relocated?p.heading:followHeading(visual.renderHeading,p.heading,match.paused?0:dt);visual.lastX=p.x;visual.lastZ=p.z;

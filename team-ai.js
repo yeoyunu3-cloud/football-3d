@@ -54,10 +54,13 @@ export function coverTarget(match,p,carrier,target){
   // The second defender closes the inside lane, rather than running into the
   // same tackle. A centre back stays in the back line when cover is distant.
   if(dist(p,carrier)>15||p.role==='CB'&&dist(p,carrier)>9)return target;
+  // The human carrier is only doubled up when he is already close; otherwise keep the shape.
+  const human=match.mode==='player'&&carrier.team===0&&carrier.id===match.selected;
+  if(human&&dist(p,carrier)>9)return target;
   const side=primary&&primary.z>=carrier.z?-1:1;
   const beaten=primary&&(primary.x-carrier.x)*s>.8;
-  if(beaten&&dist(p,carrier)<8)return {x:carrier.x+carrier.vx*.22,z:carrier.z+carrier.vz*.22,speed:8.5};
-  return {x:clamp(carrier.x-s*5.2,-48,48),z:clamp(carrier.z+side*3.8,-29,29),speed:7.8};
+  if(beaten&&dist(p,carrier)<8)return {x:carrier.x+carrier.vx*.22,z:carrier.z+carrier.vz*.22,speed:human?7.2:8.5};
+  return {x:clamp(carrier.x-s*5.2,-48,48),z:clamp(carrier.z+side*3.8,-29,29),speed:human?6.6:7.8};
 }
 
 export function openSupport(match,p,carrier,target){
