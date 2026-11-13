@@ -1,6 +1,6 @@
 import {eventMinute,fillEventRow,scoreSummary} from './event-format.js?v=20261112-20-release';
 import {KIT_PRESETS} from './kits.js?v=20261112-20-release';
-import {FORMATIONS} from './match.js?v=20261113-skills';
+import {FORMATIONS} from './match.js?v=20261113-spread';
 import {applyClub,sanitizeClub} from './roster.js?v=20261112-20-release';
 import {loadSquads,saveSquads,createSquad,deleteSquad,validateNumber,loadHistory,clearHistory} from './squads.js?v=20261112-20-release';
 import {notify,textNode} from './ui.js?v=20261112-20-release';

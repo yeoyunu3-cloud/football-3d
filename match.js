@@ -1,5 +1,5 @@
 import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261112-20-release';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261113-4';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261113-5';
 import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261112-20-release';
 import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261112-20-release';
 import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261112-20-release';

@@ -32,24 +32,24 @@ export function pressTrigger(m,carrier,{block=true}={}){
 function defendBlock(m,p,ball,carrier){
   const {s,defBase}=frame(m,p.team),base=m.basePosition(p),bu=ball.x*s,bw=ball.z*s;
   const setting=m.tactics[p.team]?.line??'balanced';
-  let line=bu-(setting==='high'?17:setting==='low'?27:22);
+  let line=bu-(setting==='high'?20:setting==='low'?30:25);
   line=clamp(line,-46,setting==='high'?2:-6);line=Math.max(-47,Math.min(line,bu-4));
-  const depth=(base[0]-defBase)*.85;
+  const depth=(base[0]-defBase)*1.1;
   let u,w;
   if(DEFENDERS.includes(p.role)){
     u=line+(Math.sign(base[1])===Math.sign(bw)&&p.role!=='CB'?1:0);
-    w=clamp(base[1]*.72+bw*.42,-27,27);
+    w=clamp(base[1]*.92+bw*.25,-29,29);
   }else if(FORWARDS.includes(p.role)){
-    u=Math.min(line+depth*.85,bu+4);w=clamp(base[1]*.6+bw*.38,-24,24);
+    u=Math.min(line+depth*.95,bu+6);w=clamp(base[1]*1.3+bw*.2,-24,24);
   }else{
-    u=line+depth;w=clamp(base[1]*.72+bw*.45,WIDE.includes(p.role)?-26:-22,WIDE.includes(p.role)?26:22);
+    u=line+depth;w=clamp(base[1]*.92+bw*.25,WIDE.includes(p.role)?-29:-22,WIDE.includes(p.role)?29:22);
   }
   // Zonal: an opponent who enters this player's zone is shadowed from the goal side.
   const threat=m.players.filter(o=>o.team!==p.team&&!o.sentOff&&o.index>0&&o.id!==carrier?.id).map(o=>({o,ou:o.x*s,ow:o.z*s}))
     .filter(t=>Math.abs(t.ow-w)<8&&t.ou>u-6&&t.ou<u+12).sort((a,b)=>Math.hypot(a.ou-u,a.ow-w)-Math.hypot(b.ou-u,b.ow-w))[0];
   if(threat){
-    if(DEFENDERS.includes(p.role))w=w*.45+threat.ow*.55;
-    else{u=Math.min(u,threat.ou-1.6)*.6+u*.4;w=w*.45+threat.ow*.55;}
+    if(DEFENDERS.includes(p.role))w=w*.75+threat.ow*.25;
+    else{u=Math.min(u,threat.ou-1.6)*.35+u*.65;w=w*.75+threat.ow*.25;}
   }
   const t=toWorld(s,clamp(u,-48,40),clamp(w,-29,29));return {...t,speed:paceTo(p,t)};
 }
@@ -83,15 +83,15 @@ function attackShape(m,p,ball,carrier){
     case 'LB':case 'RB':
       if(carrier&&WIDE.includes(carrier.role)&&Math.sign(carrier.z*s)===side&&bu>0){u=carrier.x*s+8;w=carrier.z*s-side*3;}
       else if(bu>-5){u=ballSide?bu-6:bu-14;w=side*(ballSide?26:21);}else{u=back+6;w=side*24;}break;
-    case 'DM':u=clamp(bu-10,-35,25);w=bw*.35;break;
-    case 'CM':if(ballSide){u=bu-4;w=clamp(bw+side*10,-22,22);}else{u=bu+5;w=clamp(bw*.4+side*8,-20,20);}break;
+    case 'DM':u=clamp(bu-13,-35,25);w=bw*.3;break;
+    case 'CM':if(ballSide){u=bu-7;w=clamp(bw+side*13,-24,24);}else{u=bu+9;w=clamp(bw*.3+side*13,-22,22);}break;
     case 'AM':u=clamp(oppMidU+4,bu-2,off-6);w=bw*.5;break;
     case 'LM':case 'RM':case 'LW':case 'RW':
       if(!ballSide&&bu>25){u=42;w=side*10;}else{u=Math.min(bu+(ballSide?4:0),off-1.5);w=side*(ballSide?26:22);}break;
     case 'ST':{
       const second=sts.length>1&&sts[1].id===p.id;
-      if(second){u=Math.min(off-1,bu+8)-(bu<20?6:0);w=clamp(-ballSign*6+bw*.25,-16,16);}
-      else{u=off-1;w=clamp(bw*.3+base[1]*.6,-14,14);}break;}
+      if(second){u=Math.min(off-1,bu+10)-(bu<20?8:0);w=clamp(-ballSign*11+bw*.2,-18,18);}
+      else{u=off-1;w=clamp(ballSign*5+bw*.25,-16,16);}break;}
     default:u=base[0]+bu*.5;w=base[1];
   }
   // Ball wide in the final third: occupy near post, far post, the edge of the box and the back post.
@@ -127,6 +127,18 @@ export function updateAutoRuns(m,carrier){
   best.r.runTarget=best.target;best.r.runUntil=m.time+2.2;
 }
 
+// Keep team-mates apart: a target closer than MIN_GAP to another team-mate's target is pushed away from it.
+const MIN_GAP=9;
+function spread(m,p,t){
+  let {x,z}=t;
+  for(const q of m.players){
+    if(q.team!==p.team||q.id===p.id||q.sentOff||q.index===0)continue;
+    const o=q.shapeTarget&&m.controlTime-q.shapeTarget.at<.5?q.shapeTarget:q,dx=x-o.x,dz=z-o.z,d=Math.hypot(dx,dz);
+    if(d<MIN_GAP){const push=(MIN_GAP-d)*.5,nx=d>.05?dx/d:(p.id<q.id?1:-1)*.3,nz=d>.05?dz/d:(p.id<q.id?1:-1);x+=nx*push;z+=nz*push;}
+  }
+  x=clamp(x,-50,50);z=clamp(z,-31,31);p.shapeTarget={x,z,at:m.controlTime};return {...t,x,z};
+}
+
 // Returns a target for players the shape system owns, or null to defer to the specialised logic.
 export function teamShapeTarget(m,p,carrier,primary){
   if(p.index===0||p.sentOff)return null;
@@ -135,14 +147,14 @@ export function teamShapeTarget(m,p,carrier,primary){
   if(carrier){
     if(carrier.team===p.team){
       if(p.runUntil>m.time&&p.runTarget)return {x:p.runTarget.x,z:p.runTarget.z,speed:8.8};
-      return attackShape(m,p,m.ball,carrier);
+      return spread(m,p,attackShape(m,p,m.ball,carrier));
     }
     if(primary?.id===p.id)return primaryPress(m,p,carrier);
     const state=m.teamAI?.[p.team];
     // Q (수비 도움 요청): the human's second defender goes straight at the ball for a moment.
     if(p.team===0&&m.helpPressUntil>m.time&&state?.secondary===p.id)return {x:m.ball.x,z:m.ball.z,speed:8.4};
     if(state?.secondary===p.id&&pressTrigger(m,carrier,{block:false})&&dist(p,carrier)<10)return coverPress(m,p,carrier,primary);
-    return defendBlock(m,p,m.ball,carrier);
+    return spread(m,p,defendBlock(m,p,m.ball,carrier));
   }
   // Ball loose or travelling: chasers and the receiver are handled elsewhere; everyone else keeps shape
   // around where the ball is going.
@@ -151,5 +163,5 @@ export function teamShapeTarget(m,p,carrier,primary){
   const toward=m.receiveTarget&&m.receiver>=0?m.receiveTarget:{x:m.ball.x+m.ball.vx*.5,z:m.ball.z+m.ball.vz*.5};
   const own=m.players[m.lastTouch].team===p.team;
   if(own&&p.runUntil>m.time&&p.runTarget)return null;
-  return own?attackShape(m,p,toward,null):defendBlock(m,p,toward,null);
+  return spread(m,p,own?attackShape(m,p,toward,null):defendBlock(m,p,toward,null));
 }
