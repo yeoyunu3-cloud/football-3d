@@ -601,9 +601,11 @@ export class Match {
       const pressure=tactic.pressure==='high'?1.3:tactic.pressure==='low'?.8:1;
       if(primary?.id===p.id){
         // Close down from the goal side; at tackling range aim for the exposed ball.
-        const close=distance(p,carrier)<4;
-        x=close?b.x+carrier.vx*.08:carrier.x-s*1.7+carrier.vx*.15;
-        z=close?b.z+carrier.vz*.08:carrier.z+carrier.vz*.15;speed=Math.min(8.6,8.2*pressure);
+        const close=distance(p,carrier)<4,human=this.mode==='player'&&carrier.team===0&&carrier.id===this.selected;
+        // Against the human carrier, jockey goal-side instead of lunging at the ball, and close down slower.
+        if(human){x=carrier.x-s*1.9+carrier.vx*.12;z=carrier.z+carrier.vz*.12;speed=close?Math.min(6.8,Math.hypot(carrier.vx,carrier.vz)+1.2):Math.min(8,7.6*pressure);}
+        else{x=close?b.x+carrier.vx*.08:carrier.x-s*1.7+carrier.vx*.15;
+        z=close?b.z+carrier.vz*.08:carrier.z+carrier.vz*.15;speed=Math.min(8.6,8.2*pressure);}
       }else{
         const line=clamp(bx-11+attack*.4+(lineSetting==='high'?7:lineSetting==='low'?-7:0),-45,20);
         x=s*(p.index<=4?line:clamp(base[0]+(bx+15)*.5-7+attack*.5,-42,35));
@@ -748,6 +750,8 @@ export class Match {
       for(const p of this.players){
         if(p.sentOff||p.team===owner.team||p.index===0||p.decision>0)continue;
         const d=distance(p,this.ball),front=(p.x-owner.x)*Math.sin(owner.heading)+(p.z-owner.z)*Math.cos(owner.heading);
+        // The human carrier only loses the ball to a clear front-on challenge, and not every time.
+        if(this.mode==='player'&&owner.team===0&&owner.id===this.selected){if(this.possessionTime<.9||d>1||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22){p.stealCooldown=this.controlTime+1;continue;}}
         if(d<1.3&&front>-.05){this.owner=p.id;this.offside=null;this.directRestart=null;this.lastTouch=p.id;this.possessionTime=0;p.decision=.38;this.receiver=-1;if(p.team===0&&this.mode==='player'){this.selected=p.id;this.manualSelection=false;}break;}
       }
     }

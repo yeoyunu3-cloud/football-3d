@@ -11,7 +11,8 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261112-20-release';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,RUN_LANE_LABELS,validPreset,keyLabel,actionFor,runLaneFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-motive';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-fc2';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-fc3';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
 import { notify,textNode } from './ui.js?v=20261112-20-release';
@@ -174,7 +175,10 @@ const arrow=new THREE.Mesh(new THREE.ConeGeometry(.25,.43,3),new THREE.MeshBasic
 const ballTexture=document.createElement('canvas');ballTexture.width=512;ballTexture.height=256;
 const bc=ballTexture.getContext('2d');bc.fillStyle='#f3f4e9';bc.fillRect(0,0,512,256);
 for(let row=0;row<5;row++)for(let col=0;col<10;col++){const x=col*56+(row%2)*28,y=row*57;bc.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;const px=x+Math.cos(a)*18,py=y+Math.sin(a)*18;i?bc.lineTo(px,py):bc.moveTo(px,py);}bc.closePath();bc.fillStyle=(row+col)%3===0?'#182831':'#e3e6dc';bc.fill();bc.strokeStyle='#9aa59c';bc.lineWidth=1.5;bc.stroke();}
-const ball=new THREE.Mesh(new THREE.SphereGeometry(VISUAL_SCALE.ballRadius,24,16),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(ballTexture),roughness:.7}));ball.castShadow=true;scene.add(ball);
+// Drawn larger and slightly self-lit than its real 22 cm so it reads from the broadcast camera.
+const BALL_VISUAL_SCALE=1.75,ballLift=VISUAL_SCALE.ballRadius*(BALL_VISUAL_SCALE-1);
+const ball=new THREE.Mesh(new THREE.SphereGeometry(VISUAL_SCALE.ballRadius,24,16),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(ballTexture),roughness:.55,emissive:0xffffff,emissiveIntensity:.22}));ball.scale.setScalar(BALL_VISUAL_SCALE);ball.castShadow=true;scene.add(ball);
+const ballMarker=new THREE.Mesh(new THREE.RingGeometry(.34,.46,40),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,depthWrite:false}));ballMarker.rotation.x=-Math.PI/2;scene.add(ballMarker);
 const ballShadow=new THREE.Mesh(new THREE.CircleGeometry(.15,24),new THREE.MeshBasicMaterial({color:0x092315,transparent:true,opacity:.35,depthWrite:false}));ballShadow.rotation.x=-Math.PI/2;scene.add(ballShadow);
 for(const id of ['player-preview','home-player-preview']){const host=$(id);host.onpointerdown=e=>{if(e.button!==0)return;previewDrag={id:e.pointerId,x:e.clientX};host.setPointerCapture(e.pointerId);};host.onpointermove=e=>{if(previewDrag?.id!==e.pointerId)return;previewYaw+=(e.clientX-previewDrag.x)*.012;previewDrag.x=e.clientX;};for(const event of ['pointerup','pointercancel','lostpointercapture'])host.addEventListener(event,()=>previewDrag=null);}
 $('preview-reset').onclick=()=>previewYaw=.12;
@@ -219,6 +223,20 @@ $('match-speed').onchange=()=>{matchSpeed=Number($('match-speed').value);};
 bindAction('keeper-drop',()=>match.dropKeeperBall());
 $('cancel-kick').onclick=()=>match.cancelKick();renderer.domElement.addEventListener('contextmenu',e=>{e.preventDefault();match.cancelKick();});
 
+// Ball sound cues come from state changes: a new kick, a new owner, a loose touch, and dribble strides.
+for(const type of ['keydown','pointerdown'])window.addEventListener(type,unlockBallSound,{capture:true});
+const soundState={owner:-1,kick:null,lastTouch:-1,carry:0};
+function updateBallSound(dt){
+  const s=soundState,owner=match.owner,b=match.ball;
+  if(homeOpen||match.paused||!match.running){s.carry=0;s.owner=owner;s.kick=match.lastKick;s.lastTouch=match.lastTouch;return;}
+  if(match.lastKick&&match.lastKick!==s.kick)playKick(Math.min(1,Math.hypot(b.vx,b.vz,b.vy)/40));
+  else if(owner>=0&&owner!==s.owner){playTrap(Math.min(1,.3+Math.hypot(b.vx,b.vz)/20));s.carry=0;}
+  else if(owner<0&&s.owner>=0&&match.lastTouch===s.owner)playTouch(.8);
+  else if(owner<0&&s.owner<0&&match.lastTouch!==s.lastTouch)playTouch(.7);
+  if(owner>=0){const p=match.players[owner],speed=Math.hypot(p.vx,p.vz),stride=speed>8.5?2.6:1.8;
+    if(p.holdingBall)s.carry=0;else{s.carry+=speed*dt;if(speed>1&&s.carry>=stride){s.carry-=stride;playTouch(owner===match.selected?Math.min(1,.25+speed/14):.12);}}}
+  s.owner=owner;s.kick=match.lastKick;s.lastTouch=match.lastTouch;
+}
 const physicalKeys={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyQ:'q',KeyE:'e',KeyR:'r',KeyX:'x',KeyZ:'z',KeyC:'c',KeyF:'f',Digit1:'1',Digit2:'2',Digit3:'3',Digit4:'4',Space:' ',ShiftLeft:'shift',ShiftRight:'shift',ControlLeft:'control',ControlRight:'control'};
 // Double-tap state: a released cross/shot waits DOUBLE_TAP_MS for a second tap (땅볼 크로스 / 깔아차기).
 let tapRelease=null,lastTap={};const suppressKeyup=new Set();
@@ -401,6 +419,7 @@ function frame(now){
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
   if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
+  updateBallSound(dt);
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
     const relocated=visual.lastX===undefined||Math.hypot(p.x-visual.lastX,p.z-visual.lastZ)>4;visual.renderHeading=relocated?p.heading:followHeading(visual.renderHeading,p.heading,match.paused?0:dt);visual.lastX=p.x;visual.lastZ=p.z;
@@ -425,8 +444,9 @@ function frame(now){
   }
   const b=match.ball,p=match.players[match.mode==='manager'&&match.owner>=0?match.owner:match.selected];
   for(const {net,sign,base} of goalNets){const positions=net.geometry.attributes.position;for(let i=0;i<base.length;i+=3){positions.array[i]=base[i]+netOffset(base[i],base[i+1],base[i+2],sign,match.goalNet);positions.array[i+1]=base[i+1];positions.array[i+2]=base[i+2];}positions.needsUpdate=true;}
-  ball.position.set(b.x,ballRenderY(b.y),b.z);if(active||match.goalWait>0&&!match.paused){ball.rotation.x+=b.vz*dt/VISUAL_SCALE.ballRadius;ball.rotation.z-=b.vx*dt/VISUAL_SCALE.ballRadius;}
-  ballShadow.position.set(b.x,.085,b.z);ballShadow.material.opacity=.36/(1+(b.y-.34)*.8);ballShadow.scale.setScalar(1+(b.y-.34)*.22);
+  ball.position.set(b.x,ballRenderY(b.y)+ballLift,b.z);if(active||match.goalWait>0&&!match.paused){ball.rotation.x+=b.vz*dt/VISUAL_SCALE.ballRadius;ball.rotation.z-=b.vx*dt/VISUAL_SCALE.ballRadius;}
+  ballShadow.position.set(b.x,.085,b.z);ballShadow.material.opacity=.36/(1+(b.y-.34)*.8);ballShadow.scale.setScalar(BALL_VISUAL_SCALE*(1+(b.y-.34)*.22));
+  ballMarker.position.set(b.x,.09,b.z);ballMarker.scale.setScalar(1+(b.y-.34)*.12);ballMarker.material.opacity=.6/(1+(b.y-.34)*.35);
   updateOfficialsAndCrowd(match.paused?0:dt);updateSetPieceAim();
   ring.position.set(p.x,.14,p.z);arrow.position.set(p.x,(p.profile?.height??180)/100+.48,p.z);ring.visible=arrow.visible=match.mode==='player'||match.mode==='manager'&&match.owner>=0;ring.material.color.set(match.mode==='manager'?(p.team===0?0x83c6ff:0xff777d):0xc5f773);arrow.material.color.copy(ring.material.color);
   const receiver=match.mode==='player'&&match.owner===match.selected?(match.charge?.type==='cross'?match.crossTarget(p,match.kickPower,match.input):match.charge?.type==='through'?match.throughTarget(p,match.kickPower,match.input):match.passTarget(undefined,match.charge?match.kickPower:.2)):null;receiverRing.visible=!!receiver&&match.running&&!match.ended;
