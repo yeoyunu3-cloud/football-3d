@@ -11,7 +11,7 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261112-20-release';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-angles';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-gk';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-runpass';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
@@ -351,7 +351,7 @@ function syncHUD(){
   document.body.classList.toggle('super-save',match.highlight?.kind==='save');document.body.classList.toggle('goal-moment',match.highlight?.kind==='goal');
   if(clock!==lastClock){$('clock').textContent=clock;lastClock=clock;}
   const score=match.score.join(':');if(score!==lastScore){$('home-score').textContent=match.score[0];$('away-score').textContent=match.score[1];lastScore=score;}
-  if(lastEvent!==match.event){message(match.phase==='shootout'||match.restart||match.notice||['경기 종료','하프타임'].includes(match.event)?'':match.event);lastEvent=match.event;}
+  if(lastEvent!==match.event){message('');lastEvent=match.event;}
   if(match.ended&&$('result').classList.contains('hidden')){
     $('result').classList.remove('hidden');const winner=match.winner??(match.score[0]>match.score[1]?0:1);
     $('result-title').textContent=match.forfeit!==null?(match.forfeit===0?'패배 · 몰수':'승리 · 몰수'):`${winner===0?'승리':'패배'}${match.shootout?' · 승부차기':''}`;
@@ -374,11 +374,11 @@ function updateMatchPanels(){
   if(setPiece&&shownRestart!==setPiece){if(!shownRestart)rosterBeforeRestart=$('match-sidebar').hidden;shownRestart=setPiece;$('match-sidebar').hidden=true;$('roster-toggle').setAttribute('aria-expanded','false');}else if(!setPiece&&shownRestart){shownRestart=null;$('match-sidebar').hidden=rosterBeforeRestart;$('roster-toggle').setAttribute('aria-expanded',String(!rosterBeforeRestart));}
   const drawingRestart=match.restart?.manual&&DRAWABLE_RESTARTS.has(match.restart.type);$('draw-actions').hidden=!drawingRestart;$('take-drawn-kick').disabled=!match.restart?.plan||match.restart.readyAfter>0;
   const shootout=match.phase==='shootout'?match.shootout:null;$('shootout-tally').hidden=!shootout;for(const id of ['pass','through','cross','switch','sprint','shot-style'])$(id).hidden=Boolean(shootout);$('shoot').textContent=shootout&&shootout.turn===1?'다이빙':'슛·헤딩';
-  const notice=match.notice;$('match-announcement').hidden=!notice;
+  const notice=match.notice;$('match-announcement').hidden=true;
   $('match-announcement').dataset.team=String(notice?.team??'');
   if(notice){$('match-announcement').dataset.type=notice.type;$('announcement-title').textContent=notice.title;$('announcement-detail').textContent=notice.message;}
   const r=match.restart;
-  if(r){$('match-announcement').hidden=false;$('match-announcement').dataset.type='restart';
+  if(r){$('match-announcement').hidden=true;$('match-announcement').dataset.type='restart';
     $('announcement-title').textContent=`${r.team===0?'홈':'원정'} ${({throw:'스로인',corner:'코너킥',goalKick:'골킥',freeKick:'프리킥',indirect:'간접 프리킥',penalty:'페널티킥'}[r.type])}`;
     const hint=r.manual?(r.readyAfter>0?`준비 ${Math.ceil(r.readyAfter)}초`:(r.type==='throw'?`A / D 방향 · ${keyLabel(controls().pass)} 누른 뒤 놓기`:r.type==='penalty'?`방향키 · ${keyLabel(controls().shoot)} 누른 뒤 놓기`:(r.plan?'궤적 확인 후 차기 · 다시 그리기':r.pathError||`공에서 목표까지 드래그 · ${keyLabel(controls().pass)} 패스 / ${keyLabel(controls().cross)} 크로스 / ${keyLabel(controls().shoot)} 슛`))):`${Math.ceil(r.wait)}초 후 재개`;
     $('announcement-detail').textContent=`${match.players[r.taker].number} ${match.players[r.taker].name} · ${r.delayCountdown!==undefined?`${Math.ceil(r.delayCountdown)}초 안에 재개 · `:''}${hint}${r.manual&&r.type!=='penalty'?' · Q 선수 전환':''}`;

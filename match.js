@@ -309,7 +309,7 @@ export class Match {
     if(this.charge&&this.charge.type!==type||this.pending&&this.pending.type!==type){this.cancelKick();return false;}
     if(this.restart?.manual){this.charge??={type,start:this.controlTime,player:this.selected,shotStyle};return true;}
     if(this.owner<0&&this.ball.y>1.1){this.startHeader(this.players[this.selected],type==='pass'?'pass':'shoot');return;}
-    if(!this.charge){this.charge={type,start:this.controlTime,player:this.selected,shotStyle};if(type==='through'&&this.owner===this.selected){const runner=this.throughTarget(this.players[this.selected],.4,this.input);if(runner){this.charge.runner=runner.id;this.charge.runUpdateAt=this.time;runner.runTarget=this.throughSpace(this.players[this.selected],runner,.4,this.input);runner.runUntil=this.time+1.2;}}}
+    if(!this.charge){this.charge={type,start:this.controlTime,player:this.selected,shotStyle};if(type==='through'&&this.owner===this.selected){const called=this.calledRun&&!this.calledRun.passed&&this.calledRun.until>this.time?this.players[this.calledRun.id]:null,runner=called&&!called.sentOff?called:this.throughTarget(this.players[this.selected],.4,this.input);if(runner){this.charge.runner=runner.id;this.charge.runUpdateAt=this.time;runner.runTarget=this.throughSpace(this.players[this.selected],runner,.4,this.input);runner.runUntil=this.time+1.2;}}}
   }
   releaseKick(type){
     if(!this.charge||this.charge.type!==type)return false;
@@ -379,7 +379,7 @@ export class Match {
     if(angle===null){const tx=s*clamp(line+10,runner.x*s+6,48),tz=runner.z*.6,len=Math.hypot(tx-runner.x,tz-runner.z)||1;dx=(tx-runner.x)/len;dz=(tz-runner.z)/len;}
     else{const a=angle*Math.PI/180;dx=s*Math.sin(a);dz=-s*Math.cos(a);}
     const reach=14;runner.runTarget={x:clamp(runner.x+dx*reach,-50,50),z:clamp(runner.z+dz*reach,-32,32)};
-    runner.runUntil=this.time+2.2;this.calledRun={id:runner.id,until:runner.runUntil};
+    runner.runUntil=this.time+3.5;this.calledRun={id:runner.id,until:runner.runUntil,passed:false};
     this.announce('info','침투',`${this.playerLabel(runner.id)} · ${angle===null?'골대 방향':angle+'°'}`,1.6);
     return runner;
   }
@@ -439,6 +439,8 @@ export class Match {
   strike(p,type,power=.35,aim=null,preferredTarget=null,shotStyle='auto') {
     const s=this.attackSign(p.team),b=this.ball;b.shotFlight=null;b.flightDrag=null;b.curlX=b.curlZ=b.curveRemaining=0;
     this.offsideSnapshot(p.team,p.id);this.lastKick={type,team:p.team,isShot:type==='shoot'};if(['pass','through','cross','loft'].includes(type))for(const q of this.players)if(q.team!==p.team&&q.index>0)q.ballReactionUntil=this.controlTime+.1+Math.min(.07,distance(q,b)/200);
+    // After Q / 1~4 the player's next pass (S, W or A) is for the runner, always.
+    if(!preferredTarget&&['pass','through','cross'].includes(type)&&this.mode==='player'&&p.team===0&&p.id===this.selected){const run=this.calledRun,r=run&&!run.passed&&run.until>this.time?this.players[run.id]:null;if(r&&!r.sentOff&&r.id!==p.id){preferredTarget=r;run.passed=true;}}
     let tx=s*53.5,tz=0,speed=33,loft=2.6,kickFlight=0;
     if(['pass','through','cross','loft'].includes(type)){
       const target=preferredTarget&&!preferredTarget.sentOff&&preferredTarget.team===p.team?preferredTarget:type==='cross'?this.crossTarget(p,power,aim):type==='through'?this.throughTarget(p,power,aim):this.passTarget(p,power,aim);
