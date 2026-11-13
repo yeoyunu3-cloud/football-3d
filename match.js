@@ -1,9 +1,10 @@
 import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261112-20-release';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261113-3';
 import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261112-20-release';
 import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261112-20-release';
 import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261112-20-release';
 import {shapeTarget} from './formation-shape.js?v=20261112-20-release';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261113-zonal';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261113-shape';
 import {attackPlan,attackPosition} from './attacking.js?v=20261112-20-release';
 import {planThroughPass} from './through-pass.js?v=20261112-20-release';
 import {planCelebration,celebrationStep} from './celebration-route.js?v=20261112-20-release';
@@ -571,6 +572,8 @@ export class Match {
     let x,z,speed=6.7;
     if(p.index===0)return keeperTarget(this,p,carrier);
     const primary=pressers[p.team];
+    // Shape first (team-shape.js); the older rules below handle chasers, receivers and crosses.
+    const shaped=teamShapeTarget(this,p,carrier,primary);if(shaped)return {x:clamp(shaped.x,-50.3,50.3),z:clamp(shaped.z,-32,32),speed:shaped.speed};
     if(!carrier){
       if(this.receiver===p.id){const intercept=this.interceptTarget(p);x=intercept.x;z=intercept.z;speed=distance(p,b)<8?9.1:7.8;}
       else if(primary?.id===p.id&&!(p.ballReactionUntil>this.controlTime)){const t=clamp(distance(p,b)/18,.05,.6);const intercept=this.interceptTarget(p);x=intercept.x;z=intercept.z;speed=distance(p,b)<8?9.1:7.8;}
@@ -892,7 +895,7 @@ export class Match {
     this.noCatch=Math.max(0,this.noCatch-dt);this.possessionTime+=dt;this.receiveAssist=Math.max(0,this.receiveAssist-dt);
     const carrier=this.owner>=0?this.players[this.owner]:null;if(carrier){observeCarry(this,carrier);const plan=this.attackPlans[carrier.team];if(!plan||plan.carrier!==carrier.id||this.time-plan.createdAt>.5)this.attackPlans[carrier.team]=attackPlan(this,carrier);const link=this.wallPass[carrier.team];if(link&&link.expires<this.time)this.wallPass[carrier.team]=null;}
     const assignments=[coordinateTeam(this,0,carrier),coordinateTeam(this,1,carrier)];
-    const pressers=assignments.map(a=>this.players[a.primary]??null);this.ballChasers=pressers.filter(Boolean).map(p=>p.id);
+    const pressers=assignments.map(a=>this.players[a.primary]??null);this.ballChasers=pressers.filter(Boolean).map(p=>p.id);updateAutoRuns(this,carrier);
     for(const p of this.players){p.previousX=p.x;p.previousZ=p.z;}
     if(this.charge?.type==='through'&&this.charge.runner!==undefined&&this.owner===this.selected&&this.time-(this.charge.runUpdateAt??0)>.08){const runner=this.players[this.charge.runner];if(!runner.sentOff){const point=this.throughSpace(this.players[this.selected],runner,this.kickPower,this.input);runner.runTarget={x:point.x,z:point.z};runner.runUntil=this.time+.8;}this.charge.runUpdateAt=this.time;}
     this.assignMarks(carrier,pressers);for(const p of this.players)if(p.distribution)stepKeeperRelease(this,p,dt);this.updateKeepers(dt);this.updateAerials(dt);updateWallJumps(this,dt);

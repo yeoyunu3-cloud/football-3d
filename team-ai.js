@@ -98,7 +98,7 @@ export function bestOutlet(match,p){
     const hold=tempo==='fast'?.45:tempo==='controlled'?1:.7;
     if(match.possessionTime<hold&&pressure>4)continue;
     // A carrier with open grass should draw a defender before releasing.
-    if(pressure>6&&progress<5&&centralGain<1)continue;
+    if(pressure>8&&progress<5&&centralGain<1)continue;
     const option={receiver:q,type:'pass',power:build==='direct'?.65:.42,score};
     options.push(option);
     if(!best||option.score>best.score)best=option;
