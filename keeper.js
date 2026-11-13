@@ -110,10 +110,11 @@ export function tryKeeperSave(match,p,before){
   }
   const a=p.keeperAction,c=keeperContacts(p),bodyScale=(p.profile?.height??180)/180;
   const handDistance=Math.min(...c.hands.map(h=>sweepDistance3(h,before,b))),bodyDistance=sweepDistance3(c.body,before,b),footDistance=sweepDistance3(c.foot,before,b);
-  const reach=.34+.23*bodyScale;
+  // Tuned down: keepers were stopping ~3 in 4 clean shots on target.
+  const reach=.24+.16*bodyScale;
   // Gloves, torso or an extended foot must physically meet the swept ball.
   const lowBody={x:p.x,y:.55*bodyScale,z:p.z},lowDistance=sweepDistance3(lowBody,before,b);
-  if(!(handDistance<reach||bodyDistance<.77*bodyScale||['footSave','reflex','lowCatch'].includes(a.kind)&&(footDistance<.8||lowDistance<.68*bodyScale)))return false;
+  if(!(handDistance<reach||bodyDistance<.6*bodyScale||['footSave','reflex','lowCatch'].includes(a.kind)&&(footDistance<.62||lowDistance<.52*bodyScale)))return false;
   a.contacted=true;b.curveRemaining=0;b.shotFlight=null;b.flightDrag=null;match.stats.saves[p.team]++;match.recordEvent?.('save',p.team,p.id,{action:a.kind});match.lastTouch=p.id;
   if(a.catchable&&handDistance<.9&&Math.hypot(b.vx,b.vz)<29){
     match.owner=p.id;match.possessionTime=0;match.receiver=-1;p.holdingBall=true;p.heldOffset={x:b.x-p.x,y:b.y,z:b.z-p.z};b.vx=b.vz=b.vy=0;

@@ -14,7 +14,7 @@ import {stepGoalBall} from './goal-effects.js?v=20261112-20-release';
 import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261112-20-release';
 import {Shootout} from './shootout.js?v=20261112-20-release';
 import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261112-20-release';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261112-20-release';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261113-gk';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -61,7 +61,8 @@ export class Match {
     const p=this.players[playerId],entry={id:this.events.length+1,type,time:this.displayTime,half:this.half,team,playerId,name:p?.name??'',number:p?.number??(p?NUMBERS[p.index]:null),...details};
     this.events.push(entry);return entry;
   }
-  announce(type,title,message,duration=6){this.notice={type,title,message,remaining:duration};}
+  // Input feedback ('info': run called, kick cancelled, penalty hint) is not bannered; only match events are.
+  announce(type,title,message,duration=6){if(type==='info')return;this.notice={type,title,message,remaining:duration};}
   cancelKick(){const had=Boolean(this.charge||this.pending||this.restart?.plan||this.restart?.queuedKick);this.charge=null;this.pending=null;if(this.restart){this.restart.plan=null;this.restart.queuedKick=null;}if(had)this.announce('info','동작 취소','패스·슛 입력을 취소했습니다.',2);return had;}
   matchRecord(status=this.ended?'finished':'abandoned'){
     return {winner:this.winner,shootout:this.shootout?{score:[...this.shootout.score],attempts:[...this.shootout.attempts],kicks:this.shootout.kicks.map(k=>({...k})),winner:this.shootout.winner,participants:this.shootout.participants.map(a=>[...a]),excluded:this.shootout.excluded.map(a=>[...a])}:null,addedTime:this.addedTime.map(a=>({...a})),id:this.id,startedAt:this.startedAt,endedAt:new Date().toISOString(),squadName:this.squadName??'내 스쿼드',awaySquadName:this.awaySquadName??'상대 팀',mode:this.mode,status,score:[...this.score],time:this.displayTime,formation:this.formations[0],events:this.events.filter(e=>['goal','foul','yellow','red','penaltyGoal','penaltyMiss'].includes(e.type)).map(e=>({...e})),stats:JSON.parse(JSON.stringify(this.stats)),players:this.players.map(p=>({id:p.id,team:p.team,name:p.name,number:p.number,role:p.role,yellow:p.yellow,sentOff:p.sentOff,fouls:p.fouls}))};
@@ -472,7 +473,7 @@ export class Match {
       const human=p.id===this.selected&&this.mode==='player',distanceToGoal=Math.abs(tx-b.x);
       const side=keeper.z+keeper.vz*.12>=0?-1:1;
       tz=this.setPieceContext?this.setPieceContext.aimZ:!human&&Number.isFinite(p.aiShotAimZ)?p.aiShotAimZ:human&&Math.abs(inputZ)>.2?inputZ*3.05:side*(distanceToGoal<14?2.45:2.7)+Math.sin(this.time*1.7+p.id)*.22;
-      keeper.reaction=clamp((distance(p,keeper)<14?.07:.16)+(Math.abs(keeper.vz)>2?.04:0)+(keeper.decision>0?.04:0)+Math.sin(this.time*.71+p.id)*.035,.055,.24);speed=clamp(27+power*11+Math.abs(tx-p.x)*.05,29,39);const flight=Math.hypot(tx-b.x,tz-b.z)/speed;loft=clamp(((human?1.15:.6)-b.y+4.905*flight*flight)/Math.max(.12,flight),.45,6.8);
+      keeper.reaction=clamp((distance(p,keeper)<14?.07:.16)+(Math.abs(keeper.vz)>2?.04:0)+(keeper.decision>0?.04:0)+(human?.05:0)+Math.sin(this.time*.71+p.id)*.035,.055,.28);speed=clamp(27+power*11+Math.abs(tx-p.x)*.05,29,39);const flight=Math.hypot(tx-b.x,tz-b.z)/speed;loft=clamp(((human?1.15:.6)-b.y+4.905*flight*flight)/Math.max(.12,flight),.45,6.8);
       this.stats.shots[p.team]++;this.receiver=-1;p.aiShotAimZ=null;
     }
     this.recordEvent(type,p.team,p.id,{power});observeAction(this,p,type,{x:tx,z:tz});

@@ -1,6 +1,6 @@
 import {outletRisk} from './opponent-adaptation.js?v=20261112-20-release';
 import {variation} from './match-variation.js?v=20261112-20-release';
-import {predictBall} from './keeper.js?v=20261112-20-release';
+import {predictBall} from './keeper.js?v=20261113-gk';
 import {passSafety,tacticValue} from './tactics.js?v=20261112-20-release';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));

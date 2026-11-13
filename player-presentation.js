@@ -1,6 +1,6 @@
 import {distributionPose} from './keeper-control.js?v=20261112-20-release';
 import * as THREE from './vendor/three.module.min.js';
-import {keeperPose} from './keeper.js?v=20261112-20-release';
+import {keeperPose} from './keeper.js?v=20261113-gk';
 import {celebrationPose} from './presentation.js?v=20261112-20-release';
 export function applyKeeperRig(visual,p){
  const g=visual.group,pose=keeperPose(p);g.rotation.set(0,p.heading,0);g.position.y=pose.rootY-.07;

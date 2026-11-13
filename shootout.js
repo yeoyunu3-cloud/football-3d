@@ -1,5 +1,5 @@
 import {stepGoalBall} from './goal-effects.js?v=20261112-20-release';
-import {chooseKeeperAction,updateKeeper,tryKeeperSave} from './keeper.js?v=20261112-20-release';
+import {chooseKeeperAction,updateKeeper,tryKeeperSave} from './keeper.js?v=20261113-gk';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export class Shootout {
   constructor(players,{firstTeam=0,random=Math.random}={}){

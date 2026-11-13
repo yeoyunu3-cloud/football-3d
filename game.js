@@ -11,14 +11,14 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261112-20-release';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-angles';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-offside';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-gk';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
 import { notify,textNode } from './ui.js?v=20261112-20-release';
 import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261112-20-release';
 import {officialStep,celebrationPose} from './presentation.js?v=20261112-20-release';
-import { keeperPose } from './keeper.js?v=20261112-20-release';
+import { keeperPose } from './keeper.js?v=20261113-gk';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
