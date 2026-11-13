@@ -9,9 +9,9 @@ import {paintKit} from './kit-art.js?v=20261112-20-release';
 import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261112-20-release';
 import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261112-20-release';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,RUN_LANE_LABELS,validPreset,keyLabel,actionFor,runLaneFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-motive';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-angles';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-fc3';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261113-fc4';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
 import { saveMatch } from './squads.js?v=20261112-20-release';
@@ -28,7 +28,7 @@ for(const [key,options] of Object.entries(TACTIC_OPTIONS))for(const [host,prefix
 $('tactics-panel').append(document.querySelector('.match-stats'));
 let controlPreset=DEFAULT_PRESET;try{controlPreset=validPreset(localStorage.getItem('soccer-controls'));}catch{}
 const controls=()=>CONTROL_PRESETS[controlPreset];
-function showControls(){const c=controls();const entries=[[c.move,'이동'],[keyLabel(c.sprint),'달리기'],[keyLabel(c.switch),'선수 전환'],[keyLabel(c.pass),'패스'],[keyLabel(c.through),'스루패스'],[keyLabel(c.cross),'크로스'],[keyLabel(c.shoot),'슛·헤딩'],['Esc','경기 메뉴']];for(const host of [$('player-setup'),document.querySelector('.controls-hint')]){host.replaceChildren(...entries.map(([key,label])=>{const span=document.createElement('span'),kbd=document.createElement('kbd');kbd.textContent=key;span.append(kbd,` ${label}`);return span;}));{const extra=document.createElement('small');extra.className='shot-controls';extra.textContent=c.shotMods.map(([key,style])=>`${keyLabel(key)} + ${keyLabel(c.shoot)} ${SHOT_LABELS[style]}`).join(' · ')+(c.runCall?` · ${keyLabel(c.runCall)} 침투 · ${c.runLanes.map((key,i)=>`${key} ${RUN_LANE_LABELS[i]}`).join(' / ')} 침투 방향`:'')+(c.defendSwitch?` · 수비: ${keyLabel(c.defendSwitch)} 선수 변경 · ${keyLabel(c.tackle)} 태클 · ${keyLabel(c.slideTackle)} 슬라이딩 · 공격: ${keyLabel(c.cross)}${keyLabel(c.cross)} 땅볼 크로스 · Z + ${keyLabel(c.cross)} 감아 크로스 · Z + ${keyLabel(c.pass)} 감아 패스 · ${keyLabel(c.shoot)}${keyLabel(c.shoot)} 깔아차기 · ${keyLabel(c.sprint)}${keyLabel(c.sprint)} / ${keyLabel(c.knockOn)} 치고 달리기 · ${c.cancel.map(keyLabel).join(' + ')} 취소 · GK ${keyLabel(c.keeperDrop)} 공 놓기`:'');host.append(extra);}}}
+function showControls(){const c=controls();const entries=[[c.move,'이동'],[keyLabel(c.sprint),'달리기'],[keyLabel(c.switch),'선수 전환'],[keyLabel(c.pass),'패스'],[keyLabel(c.through),'스루패스'],[keyLabel(c.cross),'크로스'],[keyLabel(c.shoot),'슛·헤딩'],['Esc','경기 메뉴']];for(const host of [$('player-setup'),document.querySelector('.controls-hint')]){host.replaceChildren(...entries.map(([key,label])=>{const span=document.createElement('span'),kbd=document.createElement('kbd');kbd.textContent=key;span.append(kbd,` ${label}`);return span;}));{const extra=document.createElement('small');extra.className='shot-controls';extra.textContent=c.shotMods.map(([key,style])=>`${keyLabel(key)} + ${keyLabel(c.shoot)} ${SHOT_LABELS[style]}`).join(' · ')+(c.runCall?` · ${keyLabel(c.runCall)} 침투 · ${Object.entries(c.runAngles).map(([key,deg])=>`${key} ${deg}°`).join(' / ')} 침투 각도`:'')+(c.defendSwitch?` · 수비: ${keyLabel(c.defendSwitch)} 선수 변경 · ${keyLabel(c.tackle)} 태클 · ${keyLabel(c.slideTackle)} 슬라이딩 · 공격: ${keyLabel(c.cross)}${keyLabel(c.cross)} 땅볼 크로스 · Z + ${keyLabel(c.cross)} 감아 크로스 · Z + ${keyLabel(c.pass)} 감아 패스 · ${keyLabel(c.shoot)}${keyLabel(c.shoot)} 깔아차기 · ${keyLabel(c.sprint)}${keyLabel(c.sprint)} / ${keyLabel(c.knockOn)} 치고 달리기 · ${c.cancel.map(keyLabel).join(' + ')} 취소 · GK ${keyLabel(c.keeperDrop)} 공 놓기`:'');host.append(extra);}}}
 $('control-preset').value=controlPreset;$('control-preset').onchange=()=>{releaseInputs();controlPreset=validPreset($('control-preset').value);try{localStorage.setItem('soccer-controls',controlPreset);}catch{notify('설정 저장 실패','이번 실행에는 적용되지만 다시 열면 초기화될 수 있습니다.');}showControls();};showControls();
 
 let renderer;
@@ -262,7 +262,7 @@ window.addEventListener('keydown',e=>{
     if(shotModKeys(controlPreset).includes(key)&&match.charge?.type==='shoot'){match.modifyShotStyle(shotStyleFor(keys,'auto',controlPreset));sampleInput();return;}
     // Read directional input before a same-frame pass or shot.
     sampleInput();
-    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runLaneFor(key,controlPreset));}else if(action)beginAction(action);else start();}
+    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
   }
 });
 window.addEventListener('keyup',e=>{const key=inputKey(e),action=actionFor(key,controlPreset,{...actionContext(),defending:false,attacking:false});keys.delete(key);if(suppressKeyup.delete(key))return;

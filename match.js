@@ -362,23 +362,24 @@ export class Match {
     }
     if(sl.elapsed>=sl.duration+sl.recover)p.slide=null;
   }
-  // 침투 요청 (FC: Q, 1~4 lane): send one attacker in behind the line. Lanes are from the attacker's view:
-  // 1 왼쪽 측면 · 2 왼쪽 안쪽 · 3 오른쪽 안쪽 · 4 오른쪽 측면. No lane keeps the runner on his own side.
-  callRun(lane=null){
+  // 침투 (FC: Q, 1~4 angle): one attacker sprints in behind. angle is degrees across the attacker's view,
+  // 0 = 왼쪽 터치라인 · 90 = 상대 골대 정면 · 180 = 오른쪽 터치라인. No angle runs at the goal behind the line.
+  callRun(angle=null){
     const carrier=this.owner>=0?this.players[this.owner]:null;
     if(this.mode!=='player'||!this.running||this.paused||this.ended||this.phase!=='play'||this.restart||this.goalWait>0||!carrier||carrier.team!==0)return null;
-    const s=this.attackSign(0),laneZ=lane?[-24,-9,9,24][lane-1]*s:null,wide=lane===1||lane===4;
-    const defenders=this.players.filter(o=>o.team===1&&!o.sentOff).map(o=>o.x*s).sort((a,b)=>b-a),line=Math.max(defenders[1]??30,this.ball.x*s,0);
-    const winger=wide?8:5,roleBonus={ST:6,LW:winger,RW:winger,LM:winger,RM:winger,AM:4,CM:1,LB:wide?2:-6,RB:wide?2:-6};
+    const s=this.attackSign(0),defenders=this.players.filter(o=>o.team===1&&!o.sentOff).map(o=>o.x*s).sort((a,b)=>b-a),line=Math.max(defenders[1]??30,this.ball.x*s,0);
+    const roleBonus={ST:6,LW:5,RW:5,LM:5,RM:5,AM:4,CM:1,LB:-4,RB:-4};
     let runner=null,rank=-Infinity;
     for(const r of this.players){if(r.team!==0||r.index===0||r.sentOff||r.id===carrier.id)continue;
-      const score=(roleBonus[r.role]??-10)-(laneZ===null?0:Math.abs(r.z-laneZ)*.45)-Math.abs(r.x*s-(line-4))*.25;
+      const score=(roleBonus[r.role]??-10)+r.x*s*.25-Math.max(0,distance(r,carrier)-25)*.3;
       if(score>rank){rank=score;runner=r;}}
     if(!runner)return null;
-    // Hold the line while drifting into the lane so a W through pass finds him onside, then plays him in behind.
-    const z=laneZ??clamp(runner.z,-24,24),x=s*clamp(line-.6,12,46);
-    runner.runTarget={x,z};runner.runUntil=this.time+2.6;this.calledRun={id:runner.id,until:runner.runUntil};
-    this.announce('info','침투',`${this.playerLabel(runner.id)} · ${lane?['왼쪽 측면','왼쪽 안쪽','오른쪽 안쪽','오른쪽 측면'][lane-1]:'자동'}`,1.6);
+    let dx,dz;
+    if(angle===null){const tx=s*clamp(line+10,runner.x*s+6,48),tz=runner.z*.6,len=Math.hypot(tx-runner.x,tz-runner.z)||1;dx=(tx-runner.x)/len;dz=(tz-runner.z)/len;}
+    else{const a=angle*Math.PI/180;dx=s*Math.sin(a);dz=-s*Math.cos(a);}
+    const reach=14;runner.runTarget={x:clamp(runner.x+dx*reach,-50,50),z:clamp(runner.z+dz*reach,-32,32)};
+    runner.runUntil=this.time+2.2;this.calledRun={id:runner.id,until:runner.runUntil};
+    this.announce('info','침투',`${this.playerLabel(runner.id)} · ${angle===null?'골대 방향':angle+'°'}`,1.6);
     return runner;
   }
   // Knock-on / first touch (FC: CTRL, or E double-tap): push the ball into space and chase it.
@@ -493,7 +494,7 @@ export class Match {
     let best=null,rank=-Infinity;
     for(const r of candidates){const d=distance(p,r),alignment=((r.x-p.x)*ax+(r.z-p.z)*az)/d;if(alignment<.3)continue;
       const point=this.throughSpace(p,r,power,{x:ax,z:az}),lane=this.laneClearance(this.ball,point,p.team),onside=r.x*s<=line+.15;
-      const score=alignment*13-Math.abs(d-(9+power*22))*.25+point.score*.65+(onside?12:-30)+(['ST','LW','RW','AM'].includes(r.role)?3:0)+(this.calledRun?.id===r.id&&this.calledRun.until>this.time?14:0);
+      const score=alignment*13-Math.abs(d-(9+power*22))*.25+point.score*.65+(onside?12:-30)+(['ST','LW','RW','AM'].includes(r.role)?3:0)+(this.calledRun?.id===r.id&&this.calledRun.until>this.time?45:0);
       if(score>rank){rank=score;best=r;}
     }return best;
   }
@@ -585,7 +586,7 @@ export class Match {
       if(bx>19&&Math.abs(bz)>14&&['ST','AM','LW','RW'].includes(p.role)){
         const lane=p.index%3;x=s*clamp(bx+(lane===0?8:lane===1?4:0),31,46);z=(lane===0?-1:lane===1?1:0)*s*7;speed=8.3;
       }
-      if(p.runUntil>this.time&&p.runTarget){x=p.runTarget.x;z=p.runTarget.z;speed=8.7;}
+      if(p.runUntil>this.time&&p.runTarget){x=p.runTarget.x;z=p.runTarget.z;speed=this.calledRun?.id===p.id&&this.calledRun.until>this.time?9.6:8.7;}
       if(this.crossUntil>this.time&&this.crossTeam===p.team&&['ST','AM','LW','RW'].includes(p.role)){x=s*clamp((this.crossPoint?.x??s*41)*s+(p.index%3-1)*2,32,47);z=(this.crossPoint?.z??0)+(p.index%3-1)*6;speed=8.4;}
       // Overlap only when a winger has the ball; the opposite fullback holds cover.
       if(['LB','RB'].includes(p.role)&&carrier&&['LW','RW','LM','RM'].includes(carrier.role)&&Math.sign(base[1]*s)===Math.sign(carrier.z)&&bx>0){x=carrier.x+s*8;z=clamp(carrier.z+(p.index%2?3:-3),-30,30);speed=7.8;}
@@ -626,6 +627,8 @@ export class Match {
       if(width!=='balanced')z=clamp(z*(width==='wide'?1.2:.74),-29,29);
     }
     if(own&&this.attackPlans?.[p.team]){const planned=attackPosition(this,p,carrier,this.attackPlans[p.team],{x,z,speed});x=planned.x;z=planned.z;speed=planned.speed;}
+    // A run the player asked for (Q / 1~4) beats the onside hold and shape logic: timing the pass is the player's job.
+    if(this.calledRun?.id===p.id&&this.calledRun.until>this.time&&p.runUntil>this.time&&p.runTarget)return {x:clamp(p.runTarget.x,-50.3,50.3),z:clamp(p.runTarget.z,-32,32),speed:9.6};
     if(own){const support=openSupport(this,p,carrier,{x,z,speed});x=support.x;z=support.z;speed=support.speed;}
     if(other){const cover=coverTarget(this,p,carrier,{x,z,speed});x=cover.x;z=cover.z;speed=cover.speed;}
     if(own){const backLine=this.players.filter(o=>o.team!==p.team&&!o.sentOff).map(o=>o.x*s).sort((a,b)=>b-a);x=s*Math.min(x*s,Math.max(bx,backLine[1]??50)-.65);}
@@ -879,8 +882,6 @@ export class Match {
     const pressers=assignments.map(a=>this.players[a.primary]??null);this.ballChasers=pressers.filter(Boolean).map(p=>p.id);
     for(const p of this.players){p.previousX=p.x;p.previousZ=p.z;}
     if(this.charge?.type==='through'&&this.charge.runner!==undefined&&this.owner===this.selected&&this.time-(this.charge.runUpdateAt??0)>.08){const runner=this.players[this.charge.runner];if(!runner.sentOff){const point=this.throughSpace(this.players[this.selected],runner,this.kickPower,this.input);runner.runTarget={x:point.x,z:point.z};runner.runUntil=this.time+.8;}this.charge.runUpdateAt=this.time;}
-    // A called runner keeps riding the moving defensive line until the ball is played.
-    if(this.calledRun?.until>this.time&&carrier?.team===0&&carrier.id!==this.calledRun.id){const r=this.players[this.calledRun.id],sg=this.attackSign(0),line=Math.max(this.players.filter(o=>o.team===1&&!o.sentOff).map(o=>o.x*sg).sort((a,b)=>b-a)[1]??30,this.ball.x*sg,0);if(r.runTarget&&r.runUntil>this.time)r.runTarget.x=sg*clamp(line-.6,12,46);}
     this.assignMarks(carrier,pressers);for(const p of this.players)if(p.distribution)stepKeeperRelease(this,p,dt);this.updateKeepers(dt);this.updateAerials(dt);updateWallJumps(this,dt);
     this.tryUserKick();
     for(const p of this.players){
