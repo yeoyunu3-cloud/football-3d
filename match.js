@@ -322,7 +322,7 @@ export class Match {
   }
   dropKeeperBall(){const p=this.players[this.selected];return isHumanKeeper(this,p)&&startKeeperRelease(this,p,'drop',0);}
   modifyShotStyle(style){if(!this.charge||this.charge.type!=='shoot'||!['chip','power','finesse','low','rabona'].includes(style))return false;this.charge.shotStyle=style;return true;}
-  modifyKickStyle(style){const allowed={shoot:['chip','power','finesse','low','rabona'],cross:['curl','ground'],pass:['curl']}[this.charge?.type];if(!allowed?.includes(style))return false;this.charge.shotStyle=style;return true;}
+  modifyKickStyle(style){const allowed={shoot:['chip','power','finesse','low','rabona'],cross:['curl','ground','early','low'],pass:['curl','lead','flair'],through:['lob','driven']}[this.charge?.type];if(!allowed?.includes(style))return false;this.charge.shotStyle=style;return true;}
   // Tap-release: freeze the charge power when the key goes up so a double-tap window does not add power.
   freezeKickPower(type){if(this.charge?.type!==type)return false;this.charge.releasedAt??=this.controlTime;return true;}
   canTackle(p){return this.mode==='player'&&this.running&&!this.paused&&!this.ended&&this.phase==='play'&&!this.restart&&this.goalWait<=0&&this.cardWait<=0&&!this.kickoffState&&p&&!p.sentOff&&p.index!==0&&this.owner!==p.id&&!p.slide&&(p.tackleCooldown??0)<=0;}
@@ -446,21 +446,23 @@ export class Match {
     if(['pass','through','cross','loft'].includes(type)){
       const target=preferredTarget&&!preferredTarget.sentOff&&preferredTarget.team===p.team?preferredTarget:type==='cross'?this.crossTarget(p,power,aim):type==='through'?this.throughTarget(p,power,aim):this.passTarget(p,power,aim);
       if(target){
-        const groundCross=type==='cross'&&shotStyle==='ground',d=distance(p,target),airPass=type==='cross'&&!groundCross||type==='loft';let flight=airPass?clamp(d/(24-power*5),1.05,1.9):clamp(.28+d*.032,.4,1.65);
-        let lead=type==='through'?1.05:type==='cross'?.35:.48;
-        tx=clamp(target.x+target.vx*flight*lead+(type==='through'?s*(4+power*7):0),-49,49);
+        // Variants: pass lead(Q+S)/flair(C+S)/curl(Z+S) · through lob(Q+W)/driven(Z+W) · cross early(Q+A)/low(AAA)/ground(AA)/curl(Z+A).
+        const groundCross=type==='cross'&&shotStyle==='ground',lobThrough=type==='through'&&shotStyle==='lob',d=distance(p,target),airPass=type==='cross'&&!groundCross||type==='loft'||lobThrough;let flight=airPass?clamp(d/(24-power*5),1.05,1.9):clamp(.28+d*.032,.4,1.65);
+        let lead=type==='through'?1.05:type==='cross'?.35:shotStyle==='lead'?1.15:.48;
+        tx=clamp(target.x+target.vx*flight*lead+(type==='through'?s*(4+power*7):type==='pass'&&shotStyle==='lead'?s*(3+power*4):0),-49,49);
         tz=clamp(target.z+target.vz*flight*lead,-30,30);
-        if(type==='cross'){const point=this.crossSpace(p,target,power);tx=point.x;tz=point.z;flight=clamp(Math.max(1.15,Math.hypot(tx-b.x,tz-b.z)/22,distance(target,point)/7.4+.45),1.15,2);if(groundCross)flight*=.72;}
+        if(type==='cross'){const point=this.crossSpace(p,target,power);tx=point.x;tz=point.z;flight=clamp(Math.max(1.15,Math.hypot(tx-b.x,tz-b.z)/22,distance(target,point)/7.4+.45),1.15,2);if(groundCross)flight*=.72;else if(shotStyle==='early')flight*=.8;else if(shotStyle==='low')flight*=.68;}
         kickFlight=flight;
         let throughPlan=null;if(type==='through'){throughPlan=this.throughSpace(p,target,power,aim);tx=throughPlan.x;tz=throughPlan.z;this.receiveGate=throughPlan.gate;}
         const distanceToTarget=Math.hypot(tx-b.x,tz-b.z),drag=airPass?.12:type==='through'?throughPlan.drag:.32;
-        if(type==='through')flight=throughPlan.flight;
+        if(type==='through'){flight=throughPlan.flight;if(lobThrough){tx=clamp(tx+s*2,-49,49);flight=clamp(Math.hypot(tx-b.x,tz-b.z)/17,1.1,1.8);}else if(shotStyle==='driven')flight*=.75;}
         kickFlight=flight;
-        speed=clamp(distanceToTarget*drag/(1-Math.exp(-drag*flight)),type==='cross'?10:6,42);
+        speed=clamp(Math.hypot(tx-b.x,tz-b.z)*drag/(1-Math.exp(-drag*flight)),type==='cross'?10:6,42);
         if(!airPass){b.y=.34;b.flightDrag=type==='through'?throughPlan.drag:.32;}
-        loft=airPass?((type==='cross'?2.05:1.1)-b.y+4.905*flight*flight)/flight:0;
+        const arrive=lobThrough?.6:type==='cross'?(shotStyle==='low'?.75:shotStyle==='early'?1.5:2.05):1.1;
+        loft=airPass?(arrive-b.y+4.905*flight*flight)/flight:0;
         this.receiver=target.id;this.receiveTarget={x:tx,z:tz};this.receiveAssist=flight+.9;this.receiverInputRevision=this.inputRevision;
-        if(type==='through'){target.runUntil=this.time+flight+1.2;target.runTarget={x:tx,z:tz};}
+        if(type==='through'||type==='pass'&&shotStyle==='lead'){target.runUntil=this.time+flight+1.2;target.runTarget={x:tx,z:tz};}
         if(type==='cross'){this.crossUntil=this.time+flight+1.2;this.crossTeam=p.team;this.crossPoint={x:tx,z:tz};target.runUntil=this.crossUntil;target.runTarget={x:tx,z:tz};}
         if(p.team===0&&this.mode==='player'){this.selected=target.id;this.manualSelection=false;}
       }else{
@@ -484,7 +486,7 @@ export class Match {
     const dx=tx-b.x,dz=tz-b.z,len=Math.hypot(dx,dz)||1;
     Object.assign(b,{vx:dx/len*speed,vz:dz/len*speed,vy:loft});
     // Curl (Z + S / Z + A): constant side spin, with the launch angled out so the ball still arrives on target.
-    if(shotStyle==='curl'&&['pass','cross'].includes(type)&&kickFlight>0){const k=b.flightDrag&&b.y<=.38?b.flightDrag:.12,a=type==='cross'?5.5:4.2,side=p.z>=0?-1:1,nx=-dz/len*side,nz=dx/len*side,v0=a/k-a*kickFlight/(1-Math.exp(-k*kickFlight));b.vx+=nx*v0;b.vz+=nz*v0;b.curlX=nx*a;b.curlZ=nz*a;b.curveRemaining=kickFlight;}
+    if((shotStyle==='curl'||shotStyle==='flair')&&['pass','cross'].includes(type)&&kickFlight>0){const k=b.flightDrag&&b.y<=.38?b.flightDrag:.12,a=type==='cross'?5.5:shotStyle==='flair'?3.6:4.2,side=(p.z>=0?-1:1)*(shotStyle==='flair'?-1:1),nx=-dz/len*side,nz=dx/len*side,v0=a/k-a*kickFlight/(1-Math.exp(-k*kickFlight));b.vx+=nx*v0;b.vz+=nz*v0;b.curlX=nx*a;b.curlZ=nz*a;b.curveRemaining=kickFlight;}
     if(type==='shoot')Object.assign(b,planShot(b,{x:tx,z:tz},{power,human:p.id===this.selected&&this.mode==='player',side:p.z>=0?-1:1,style:shotStyle}));
     // 깔아차기 (D, D): keep the shot on the turf instead of the planned arc.
     if(type==='shoot'&&shotStyle==='low'){b.y=.34;b.vy=0;b.shotFlight=null;b.flightDrag=.2;b.vx*=1.06;b.vz*=1.06;}
