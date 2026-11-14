@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runlead3';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-runlead3';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-runlead3';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-runlead3';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-runlead3';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-runlead3';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-runlead3';
-import {shapeTarget} from './formation-shape.js?v=20261114-runlead3';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-runlead3';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-runlead3';
-import {planThroughPass} from './through-pass.js?v=20261114-runlead3';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-runlead3';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-runlead3';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-runlead3';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-runlead3';
-import {stepGoalBall} from './goal-effects.js?v=20261114-runlead3';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-runlead3';
-import {Shootout} from './shootout.js?v=20261114-runlead3';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-runlead3';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-runlead3';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-setpiece6';
+import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-setpiece6';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-setpiece6';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-setpiece6';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-setpiece6';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-setpiece6';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-setpiece6';
+import {shapeTarget} from './formation-shape.js?v=20261114-setpiece6';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-setpiece6';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-setpiece6';
+import {planThroughPass} from './through-pass.js?v=20261114-setpiece6';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-setpiece6';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-setpiece6';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-setpiece6';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-setpiece6';
+import {stepGoalBall} from './goal-effects.js?v=20261114-setpiece6';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-setpiece6';
+import {Shootout} from './shootout.js?v=20261114-setpiece6';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-setpiece6';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-setpiece6';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -165,6 +165,8 @@ export class Match {
     const waits={throw:3,corner:5,goalKick:4,freeKick:5,indirect:4,penalty:6};
     this.restart={type,team,x:clamp(x,-52.5,52.5),z:clamp(z,-34,34),manual,wait:waits[type]??4,readyAfter:manual?1.5:0,aimZ:0,aim:{x:this.attackSign(team),z:0}};
     const r=this.restart,s=this.attackSign(team);
+    // Penalties and free kicks in shooting range get a behind-the-ball view: 'attack' when we take it, 'defend' when they do.
+    r.view=this.running&&this.mode==='player'&&(type==='penalty'||type==='freeKick'&&r.x*s>20)?(team===0?'attack':'defend'):null;r.keeperChoice=0;
     let taker=type==='goalKick'?this.players[team*11]:type==='penalty'?this.players.find(p=>p.team===team&&p.role==='ST'&&!p.sentOff):this.nearest(team,r);
     if(!taker||taker.sentOff)taker=this.players.find(p=>p.team===team&&!p.sentOff);
     r.taker=taker.id;taker.x=clamp(r.x-s*1,-53,53);taker.z=clamp(r.z,-34,34);taker.heading=s*Math.PI/2;
@@ -215,6 +217,8 @@ export class Match {
     if(r.type==='throw')type='pass';
     this.setPieceContext=r.manual?{type:r.type,aimZ:r.aimZ}:null;
     const chosen=r.manual&&this.selected!==taker.id&&this.players[this.selected]?.team===r.team?this.players[this.selected]:null;
+    // An AI penalty picks its corner at random (sometimes down the middle) instead of always the same side.
+    if(r.type==='penalty'&&!r.manual){const roll=(this.random??Math.random)();taker.aiShotAimZ=roll<.12?(roll-.06)*8:(roll<.56?-1:1)*(2.1+(this.random??Math.random)()*.9);}
     this.strike(taker,type,power,r.manual?r.aim:null,chosen,shotStyle);this.setPieceContext=null;
     if(r.type==='throw'){
       const inward=-Math.sign(r.z),input=r.manual?r.aim:{x:s*.25,z:inward};
@@ -229,6 +233,19 @@ export class Match {
       if(r.team===0&&this.mode==='player'&&target)this.selected=target.id;
       taker.heading=Math.atan2(point.x-r.x,point.z-r.z);taker.throwAnim=.65;taker.kickAnim=0;
       this.throwState={elapsed:0,taker:taker.id,velocity,height};Object.assign(this.ball,{x:taker.x,z:taker.z,y:height,vx:0,vz:0,vy:0});
+    }
+    if(r.view==='defend'){
+      const keeper=this.players[0];this.humanWallUntil=this.controlTime+1.2;
+      if(r.type==='penalty'&&!keeper.sentOff){
+        // The keeper commits to the side the player chose (centre if none), wherever the kick actually goes.
+        const b=this.ball,time=Math.max(.12,Math.abs(keeper.x-b.x)/Math.max(1,Math.abs(b.vx))),guessed=r.keeperChoice!==0&&r.keeperChoice===Math.sign(b.vz),sample={...b,vz:(r.keeperChoice*2.7-b.z)/time,shotFlight:null};
+        // A correct guess lets him go for the real ball from the first step; a wrong one sends him the other way.
+        const a=(guessed?chooseKeeperAction(keeper,b,{incoming:true,pressure:20}):null)??chooseKeeperAction(keeper,sample,{incoming:true,pressure:1});
+        if(a){if(!guessed)a.catchable=false;else{a.launchAt=0;
+          // Guessing right is not a sure save: the nearer the kick is to the post, the less often he gets there.
+          a.sureSave=(this.random??Math.random)()<clamp(.78-(Math.abs(a.target.z)-2)*.38,.38,.78);}if(!r.keeperChoice)a.kind='reflex';keeper.keeperAction=a;keeper.heading=Math.atan2(b.x-keeper.x,b.z-keeper.z);keeper.diveSide=a.side;keeper.diveHeight=clamp(a.target.y,.35,2.4);keeper.decision=a.duration+.16;keeper.reaction=0;}
+        else{keeper.reaction=.8;}
+      }
     }
     this.penaltyInFlight=r.type==='penalty';this.penaltyFlightElapsed=0;this.directRestart={type:r.type,kicker:taker.id,team:r.team};this.event='';return true;
   }
@@ -393,6 +410,11 @@ export class Match {
     if(!this.replay)return;this.replay=null;this.phase='play';this.recFrames=[];this.owner=-1;
     for(const p of this.players){p.slide=null;p.aerial=null;p.keeperAction=null;p.skill=null;p.holdingBall=false;p.jump=0;}
     this.kickoff(this.nextKickoff);this.event='';
+  }
+  // Defending a free kick: the player times the wall's jump (D).
+  wallJump(){
+    if(this.mode!=='player'||!this.running||this.paused)return false;const wall=this.players.filter(p=>p.team===0&&!p.sentOff&&(p.wallUntil>this.controlTime||this.restart?.view==='defend'&&this.restart.wallIds?.includes(p.id)));
+    if(!wall.length||wall.some(p=>p.wallJumpTime>0))return false;for(const p of wall)p.wallJumpTime=.5;return true;
   }
   // S during a goal celebration skips to the replay; S during the replay skips to the kickoff.
   skipCelebration(){if(!this.running||this.paused||this.ended)return false;if(this.phase==='replay'){this.finishReplay();return true;}if(this.phase!=='play'||this.goalWait<=0)return false;this.goalWait=1e-4;if(this.notice)this.notice.remaining=Math.min(this.notice.remaining??0,.6);if(this.highlight)this.highlight.remaining=0;return true;}
@@ -901,6 +923,11 @@ export class Match {
     }
     if(this.owner>=0&&this.ball.y<1.15){
       const attacker=this.players[this.owner],keeper=this.players[(1-attacker.team)*11];
+      // Smother dive (see updateKeeper): at the moment of contact he wins the ball if his body gets to it.
+      const sm=keeper.keeperAction?.smother&&!keeper.keeperAction.contacted&&keeper.keeperAction.elapsed>=keeper.keeperAction.contactAt-.04?keeper.keeperAction:null;
+      if(sm){sm.contacted=true;const immune=(attacker.skillImmuneUntil??0)>this.controlTime,reach=distance(keeper,this.ball);
+        if(!immune&&reach<2.1&&(this.random??Math.random)()<(reach<1.3?.85:.6)){keeper.holdingBall=true;this.owner=keeper.id;this.lastTouch=keeper.id;this.receiver=-1;this.receiveAssist=0;this.offside=this.directRestart=null;this.possessionTime=0;this.ball.vx=this.ball.vz=this.ball.vy=0;this.charge=null;this.pending=null;if(keeper.team===0&&this.mode==='player')this.selected=keeper.id;return;}
+      }
       if(!keeper.sentOff&&!keeper.keeperAction&&keeper.x*this.attackSign(keeper.team)<-36&&Math.abs(this.ball.z)<19&&distance(keeper,this.ball)<1.45){
         const dx=this.ball.x-keeper.x,dz=this.ball.z-keeper.z;keeper.heading=Math.atan2(dx,dz);
         keeper.keeperAction={kind:'lowCatch',duration:.7,elapsed:0,side:dz>=0?1:-1,origin:{x:keeper.x,z:keeper.z},target:{...this.ball},contacted:true,catchable:true,contactAt:0};
@@ -1035,7 +1062,17 @@ export class Match {
       if(r.manual&&['throw','goalKick'].includes(r.type)&&r.elapsed>12){r.delayCountdown=Math.max(0,17-r.elapsed);if(r.delayCountdown<=0){this.recordEvent('foul',r.team,r.taker,{reason:'재개 지연'});this.setupRestart(r.type==='throw'?'throw':'corner',1-r.team,r.type==='throw'?r.x:-this.attackSign(r.team)*52.2,r.type==='throw'?r.z:(r.z>=0?33.7:-33.7));return;}}
       this.stepRestartPlayers(dt,r.taker,r);
       if(r.queuedKick&&r.readyAfter<=0){const kick=r.queuedKick;r.queuedKick=null;this.resumeRestart(kick.type,kick.power,kick.shotStyle);return;}
-      if(r.manual&&this.selected===r.taker){if(r.type==='throw'){r.throwAngle=clamp((r.throwAngle??0)+this.input.x*1.6*dt,-1.25,1.25);r.aim={x:Math.sin(r.throwAngle),z:-Math.sign(r.z)*Math.cos(r.throwAngle)};this.players[r.taker].heading=Math.atan2(r.aim.x,r.aim.z);}else{const axis=this.input.z||this.input.x;if(axis)r.aimZ=clamp(r.aimZ+axis*3*dt,-5,5);if(Math.hypot(this.input.x,this.input.z)>.1)r.aim={x:this.input.x,z:this.input.z};}}
+      if(r.manual&&this.selected===r.taker){if(r.type==='throw'){r.throwAngle=clamp((r.throwAngle??0)+this.input.x*1.6*dt,-1.25,1.25);r.aim={x:Math.sin(r.throwAngle),z:-Math.sign(r.z)*Math.cos(r.throwAngle)};this.players[r.taker].heading=Math.atan2(r.aim.x,r.aim.z);}else if(r.view==='attack'){
+          // Behind-the-ball view: screen right is +z for a team attacking +x, so ← → slide the aim across the goal.
+          const s0=this.attackSign(0);if(this.input.x)r.aimZ=clamp(r.aimZ+this.input.x*s0*3.4*dt,-5,5);if(Math.hypot(this.input.x,this.input.z)>.1)r.aim={x:-this.input.z*s0,z:this.input.x*s0};
+        }else{const axis=this.input.z||this.input.x;if(axis)r.aimZ=clamp(r.aimZ+axis*3*dt,-5,5);if(Math.hypot(this.input.x,this.input.z)>.1)r.aim={x:this.input.x,z:this.input.z};}}
+      if(r.view==='defend'){
+        // Defending: ← → pick the dive side for a penalty, or shuffle the keeper along the line for a free kick.
+        // The view looks from the ball toward our goal, so screen right is -z for a team attacking +x.
+        const s0=this.attackSign(0),keeper=this.players[0],side=Math.abs(this.input.x)>.1?-Math.sign(this.input.x)*s0:0;
+        if(r.type==='penalty'){if(side)r.keeperChoice=side;}
+        else if(side&&!keeper.sentOff){keeper.z=clamp(keeper.z+side*3.2*dt,-2.8,2.8);if(r.anchors?.[0])r.anchors[0].z=keeper.z;}
+      }
       if(!r.manual){r.wait-=dt;if(r.wait<=0)this.resumeRestart();}return;
     }
     if(this.throwState){const a=this.throwState,p=this.players[a.taker];a.elapsed+=dt;this.stepRestartPlayers(dt,a.taker,{type:'throwDelivery'});p.throwAnim=Math.max(.01,.65-a.elapsed);

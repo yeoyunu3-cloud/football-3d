@@ -1,10 +1,10 @@
-import {eventMinute,fillEventRow,scoreSummary} from './event-format.js?v=20261114-runlead3';
-import {KIT_PRESETS} from './kits.js?v=20261114-runlead3';
-import {FORMATIONS} from './match.js?v=20261114-runlead3';
-import {applyClub,sanitizeClub} from './roster.js?v=20261114-runlead3';
-import {ARCHETYPES} from './player-traits.js?v=20261114-runlead3';
-import {loadSquads,saveSquads,createSquad,deleteSquad,validateNumber,loadHistory,clearHistory} from './squads.js?v=20261114-runlead3';
-import {notify,textNode} from './ui.js?v=20261114-runlead3';
+import {eventMinute,fillEventRow,scoreSummary} from './event-format.js?v=20261114-setpiece6';
+import {KIT_PRESETS} from './kits.js?v=20261114-setpiece6';
+import {FORMATIONS} from './match.js?v=20261114-setpiece6';
+import {applyClub,sanitizeClub} from './roster.js?v=20261114-setpiece6';
+import {ARCHETYPES} from './player-traits.js?v=20261114-setpiece6';
+import {loadSquads,saveSquads,createSquad,deleteSquad,validateNumber,loadHistory,clearHistory} from './squads.js?v=20261114-setpiece6';
+import {notify,textNode} from './ui.js?v=20261114-setpiece6';
 export const IMPORTANT_EVENTS=new Set(['goal','foul','yellow','red','penaltyGoal','penaltyMiss']);
 export const EVENT_LABELS={penaltyGoal:'승부차기 성공',penaltyMiss:'승부차기 실패',shootoutStart:'승부차기 시작',shootoutEnd:'승부차기 종료',addedTime:'추가시간',loft:'띄운 패스',start:'경기 시작',kickoff:'킥오프',secondHalf:'후반 시작',halftime:'하프타임',fulltime:'경기 종료',goal:'골',yellow:'경고',red:'퇴장',foul:'파울',throw:'스로인',corner:'코너킥',goalKick:'골킥',freeKick:'프리킥',indirect:'간접 프리킥',penalty:'페널티킥',pass:'패스',through:'스루패스',cross:'크로스',shoot:'슛',save:'선방',received:'패스 수신',interception:'가로채기',block:'슛 차단',heavyTouch:'불안정한 첫 터치',headerShot:'헤딩 슛',headerPass:'헤딩 패스',clearance:'클리어',abandoned:'경기 중단'};
 export function eventText(e){return `${e.shootout?`${e.round??''}차`:eventMinute(e.time)} · ${EVENT_LABELS[e.type]??e.type}${e.team>=0?` · ${e.team===0?'홈':'원정'}`:''}${e.name?` ${e.number}번 ${e.name}`:''}${e.ownGoal?' (자책골)':''}${e.reason?` · ${e.reason}`:''}${e.victim?` → ${e.victim}`:''}`;}

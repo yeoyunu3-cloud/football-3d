@@ -1,6 +1,6 @@
-import {FIELD_SCALE} from './visual-scale.js?v=20261114-runlead3';
-import {distributionPose} from './keeper-control.js?v=20261114-runlead3';
-import {forecastBall} from './ball-flight.js?v=20261114-runlead3';
+import {FIELD_SCALE} from './visual-scale.js?v=20261114-setpiece6';
+import {distributionPose} from './keeper-control.js?v=20261114-setpiece6';
+import {forecastBall} from './ball-flight.js?v=20261114-setpiece6';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const length=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const predictBall=forecastBall;
@@ -83,11 +83,20 @@ export function updateKeeper(match,p,dt){
     p.dive=['lowDive','highDive','fingertip'].includes(a.kind)?Math.max(.001,.72*(1-a.elapsed/a.duration)):0;p.vx=p.vz=0;return;
   }
   p.recover=Math.max(0,(p.recover??0)-dt);
+  // Smother: an opponent dribbling at the keeper inside the box gets a dive at his feet.
+  if(match.owner>=0&&p.reaction<=0&&p.decision<=0&&p.recover<=0&&!p.holdingBall&&!(match.mode==='player'&&p.team===0&&match.selected===p.id)){
+    const o=match.players[match.owner],ball=match.ball,sign=match.attackSign(p.team),d=length(p,ball);
+    if(o.team!==p.team&&o.index>0&&ball.x*sign<-36.5&&Math.abs(ball.z)<19.5&&d<4.4&&d>1.3){
+      const t=.3,target={x:ball.x+o.vx*t,y:.3,z:ball.z+o.vz*t,t},closing=length(p,target)<d+.4;
+      if(closing){const side=target.z-p.z>=0?1:-1;p.keeperAction={kind:'lowDive',duration:.95,elapsed:0,side,target,origin:{x:p.x,z:p.z},contacted:false,catchable:true,contactAt:t,launchAt:.03,smother:true};p.heading=Math.atan2(ball.x-p.x,ball.z-p.z);p.diveSide=side;p.diveHeight=.35;p.decision=1.15;}
+    }
+  }
   if(match.owner>=0||p.reaction>0||p.decision>0||p.recover>0)return;
   const b=match.ball,s=match.attackSign(p.team),from=match.lastTouch>=0?match.players[match.lastTouch]:null;
   if(from?.team===p.team&&['pass','through','cross','loft','clearance'].includes(match.lastKick?.type))return;
   const cross=match.lastKick?.type==='cross'||!match.lastKick?.isShot&&b.y>2.2;
-  if(['pass','through','clearance'].includes(match.lastKick?.type)&&b.y<1.3)return;
+  // Ground passes are left alone unless they roll into the keeper's own box, where he comes to claim them.
+  if(['pass','through','clearance'].includes(match.lastKick?.type)&&b.y<1.3&&!(b.x*s<-36.5&&Math.abs(b.z)<19.5))return;
   let incoming=b.vx*s<-.5;
   // A cross may travel across the six-yard area with little forward velocity.
   const candidateBall=b;
@@ -115,7 +124,9 @@ export function tryKeeperSave(match,p,before){
   const reach=.24+.16*bodyScale;
   // Gloves, torso or an extended foot must physically meet the swept ball.
   const lowBody={x:p.x,y:.55*bodyScale,z:p.z},lowDistance=sweepDistance3(lowBody,before,b);
-  if(!(handDistance<reach||bodyDistance<.6*bodyScale||['footSave','reflex','lowCatch'].includes(a.kind)&&(footDistance<.62||lowDistance<.52*bodyScale)))return false;
+  // A penalty dive that guessed right and was judged to get there (see resumeRestart) meets the ball as it reaches him.
+  const sure=a.sureSave&&Math.abs(b.x)>=Math.abs(p.x)-.8&&Math.abs(b.z)<3.9&&b.y<2.5;
+  if(!(sure||handDistance<reach||bodyDistance<.6*bodyScale||['footSave','reflex','lowCatch'].includes(a.kind)&&(footDistance<.62||lowDistance<.52*bodyScale)))return false;
   a.contacted=true;b.curveRemaining=0;b.shotFlight=null;b.flightDrag=null;match.stats.saves[p.team]++;match.recordEvent?.('save',p.team,p.id,{action:a.kind});match.lastTouch=p.id;
   if(a.catchable&&handDistance<.9&&Math.hypot(b.vx,b.vz)<29){
     match.owner=p.id;match.possessionTime=0;match.receiver=-1;p.holdingBall=true;p.heldOffset={x:b.x-p.x,y:b.y,z:b.z-p.z};b.vx=b.vz=b.vy=0;
