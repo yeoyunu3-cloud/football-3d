@@ -1,4 +1,4 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-replay';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runlead3';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function shotOffset(flight,elapsed){
   if(!flight)return {x:0,z:0,y:0,vx:0,vz:0,vy:0};

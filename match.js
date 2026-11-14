@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-replay';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-replay';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-replay';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-replay';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-replay';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-replay';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-replay';
-import {shapeTarget} from './formation-shape.js?v=20261114-replay';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-replay';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-replay';
-import {planThroughPass} from './through-pass.js?v=20261114-replay';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-replay';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-replay';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-replay';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-replay';
-import {stepGoalBall} from './goal-effects.js?v=20261114-replay';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-replay';
-import {Shootout} from './shootout.js?v=20261114-replay';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-replay';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-replay';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runlead3';
+import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-runlead3';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-runlead3';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-runlead3';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-runlead3';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-runlead3';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-runlead3';
+import {shapeTarget} from './formation-shape.js?v=20261114-runlead3';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-runlead3';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-runlead3';
+import {planThroughPass} from './through-pass.js?v=20261114-runlead3';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-runlead3';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-runlead3';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-runlead3';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-runlead3';
+import {stepGoalBall} from './goal-effects.js?v=20261114-runlead3';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-runlead3';
+import {Shootout} from './shootout.js?v=20261114-runlead3';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-runlead3';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-runlead3';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -574,9 +574,19 @@ export class Match {
         tz=clamp(target.z+target.vz*flight*lead,-30,30);
         if(type==='cross'){const point=this.crossSpace(p,target,power);tx=point.x;tz=point.z;flight=clamp(Math.max(1.15,Math.hypot(tx-b.x,tz-b.z)/22,distance(target,point)/7.4+.45),1.15,2);if(groundCross)flight*=.72;else if(shotStyle==='early')flight*=.8;else if(shotStyle==='low')flight*=.68;else if(shotStyle==='bounce')flight*=.85;}
         kickFlight=flight;
-        let throughPlan=null;if(type==='through'){throughPlan=this.throughSpace(p,target,power,aim);tx=throughPlan.x;tz=throughPlan.z;this.receiveGate=throughPlan.gate;
+        // A called runner waits on the offside line, so plan the through ball as if he were already at full pace along his run.
+        let runner=target;if(type==='through'&&target.runUntil>this.time&&target.runTarget){const rx=target.runTarget.x-target.x,rz=target.runTarget.z-target.z,rd=Math.hypot(rx,rz),pace=9.2*traits(target).pace;if(rd>1.5)runner={...target,vx:rx/rd*pace,vz:rz/rd*pace,x:target.x+rx/rd*1.5,z:target.z+rz/rd*1.5};}
+        let throughPlan=null;if(type==='through'){throughPlan=this.throughSpace(p,runner,power,aim);tx=throughPlan.x;tz=throughPlan.z;this.receiveGate=throughPlan.gate;
           // Snappier through ball: struck harder and slowed by more grass drag, so it still arrives as the runner gets there.
           const human=p.id===this.selected&&this.mode==='player'&&p.team===0;throughPlan={...throughPlan,drag:human?clamp(throughPlan.drag*(1+.6*power),.45,1.7):clamp(throughPlan.drag*1.5,.75,1.7)};}
+        // A teammate sent on a run (Q / 1~4) waits on the offside line until the ball is played, so his current
+        // velocity says nothing about where he will be. Lead the pass along his run path instead.
+        let runLead=false;
+        if(type==='pass'&&target.runUntil>this.time&&target.runTarget){
+          const rx=target.runTarget.x-target.x,rz=target.runTarget.z-target.z,rd=Math.hypot(rx,rz);
+          if(rd>1.5){const pace=9.2*traits(target).pace,travel=Math.min(rd,pace*Math.max(0,flight-.25)*.92);
+            tx=clamp(target.x+rx/rd*travel,-49,49);tz=clamp(target.z+rz/rd*travel,-30,30);runLead=true;}
+        }
         const distanceToTarget=Math.hypot(tx-b.x,tz-b.z),drag=airPass?.12:type==='through'?throughPlan.drag:.32;
         if(type==='through'){flight=throughPlan.flight*.9/passSkill;if(lobThrough){tx=clamp(tx+s*2,-49,49);flight=clamp(Math.hypot(tx-b.x,tz-b.z)/17,1.1,1.8);}else if(shotStyle==='driven')flight*=.75;}
         if(type==='pass'&&shotStyle==='drive')flight*=.68;
@@ -586,7 +596,8 @@ export class Match {
         const arrive=lobThrough?.6:type==='cross'?(shotStyle==='low'?.75:shotStyle==='early'?1.5:shotStyle==='bounce'?.34:2.05):1.1;
         loft=airPass?(arrive-b.y+(4.905*FIELD_GRAVITY)*flight*flight)/flight:0;
         this.receiver=target.id;this.receiveTarget={x:tx,z:tz};this.receiveAssist=flight+.9;this.receiverInputRevision=this.inputRevision;
-        if(type==='through'||type==='pass'&&shotStyle==='lead'){target.runUntil=this.time+flight+1.2;target.runTarget={x:tx,z:tz};}
+        if(type==='through'||type==='pass'&&shotStyle==='lead'||runLead){target.runUntil=this.time+flight+1.2;target.runTarget={x:tx,z:tz};}
+        if((runLead||type==='through')&&this.calledRun?.id===target.id)this.calledRun=null;
         if(type==='cross'){this.crossUntil=this.time+flight+1.2;this.crossTeam=p.team;this.crossPoint={x:tx,z:tz};target.runUntil=this.crossUntil;target.runTarget={x:tx,z:tz};}
         if(p.team===0&&this.mode==='player'){this.selected=target.id;this.manualSelection=false;}
       }else{
