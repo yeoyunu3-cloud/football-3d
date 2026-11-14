@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-skip';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-skip';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-skip';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-skip';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-skip';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-skip';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-skip';
-import {shapeTarget} from './formation-shape.js?v=20261114-skip';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-skip';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-skip';
-import {planThroughPass} from './through-pass.js?v=20261114-skip';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-skip';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-skip';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-skip';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-skip';
-import {stepGoalBall} from './goal-effects.js?v=20261114-skip';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-skip';
-import {Shootout} from './shootout.js?v=20261114-skip';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-skip';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-skip';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-tricks2';
+import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-tricks2';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-tricks2';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-tricks2';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-tricks2';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-tricks2';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-tricks2';
+import {shapeTarget} from './formation-shape.js?v=20261114-tricks2';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-tricks2';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-tricks2';
+import {planThroughPass} from './through-pass.js?v=20261114-tricks2';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-tricks2';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-tricks2';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-tricks2';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-tricks2';
+import {stepGoalBall} from './goal-effects.js?v=20261114-tricks2';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-tricks2';
+import {Shootout} from './shootout.js?v=20261114-tricks2';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-tricks2';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-tricks2';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -50,7 +50,29 @@ const SKILLS={
   rainbow:{dur:.6,fool:.55,step:(u,s)=>({vf:u<.3?2:8,vl:0,bf:.2,by:u<.3?u*2:0,release:u>=.3?{f:9,y:6.2,noCatch:.3}:null})},
   fakeCut:{dur:.6,fool:.65,reach:6.5,step:(u,s)=>u<.45?{vf:.3,vl:0,bf:.6}:{vf:2.2,vl:s*5.6,bf:.55,bl:s*.6}},
   scoopTurn:{dur:.62,fool:.6,reach:6.5,step:(u,s)=>u<.45?{vf:.3,vl:0,bf:.6}:{vf:-4.6,vl:s*1.5,bf:-.7,bl:s*.2}},
+  // Moves added from the keyboard skill guide.
+  flipflap:{dur:.5,fool:.55,step:(u,s)=>u<.4?{vf:1,vl:s*1.5,bf:.6,bl:s*.6}:{vf:3.5,vl:-s*6,bf:.7,bl:-s*.75}},
+  reverseElastico:{dur:.44,fool:.68,step:(u,s)=>u<.4?{vf:1,vl:s*1.6,bf:.6,bl:s*.7}:{vf:3.8,vl:-s*6.6,bf:.7,bl:-s*.8}},
+  berbatovSpin:{dur:.6,fool:.6,step:(u,s,k,m,p)=>{k.h0??=p.heading;const a=u*Math.PI;return {vf:1.2,vl:s*4.6,bf:.6*Math.cos(a),bl:.6*Math.sin(a)*s,heading:k.h0-s*a*.9}}},
+  turnSpin:{dur:.64,fool:.68,step:(u,s,k,m,p)=>{k.h0??=p.heading;const a=u*Math.PI*2;return {vf:3*Math.cos(a)+1,vl:s*4.8,bf:.7*Math.cos(a),bl:.7*Math.sin(a)*s,heading:k.h0-s*a}}},
+  elasticoChop:{dur:.5,fool:.6,step:(u,s)=>u<.35?{vf:.6,vl:s*1.5,bf:.6,bl:s*.5}:{vf:.8,vl:-s*5.6,bf:.4,bl:-s*.7}},
+  hocusPocus:{dur:.7,fool:.72,step:(u,s)=>u<.5?{vf:.6,vl:s*wave(u)*2.5,bf:.5,bl:s*.4*wave(u)}:{vf:2.2,vl:-s*6.2,bf:.6,bl:-s*.75}},
+  tripleElastico:{dur:.72,fool:.78,step:(u,s)=>u<.33?{vf:.6,vl:-s*2,bf:.6,bl:-s*.6}:u<.66?{vf:.6,vl:s*2,bf:.6,bl:s*.6}:{vf:3.2,vl:-s*6.6,bf:.7,bl:-s*.8}},
+  sombreroFlick:{dur:.6,fool:.65,step:(u,s)=>u<.45?{vf:-.6,vl:0,bf:.4,by:u*1.4}:{vf:5,vl:0,bf:.3,release:{f:6.5,y:5.4,noCatch:.28}}},
+  okochaSombrero:{dur:.62,fool:.65,step:(u,s)=>u<.5?{vf:.3,vl:0,bf:.35,by:u*1.6}:{vf:6,vl:0,bf:.3,release:{f:7,y:5.8,noCatch:.3}}},
+  heelFlickTurn:{dur:.55,fool:.5,step:(u,s)=>u<.35?{vf:1.5,vl:0,bf:.7}:{vf:-5,vl:s*2.2,bf:-.8,bl:s*.25}},
+  bolasie:{dur:.55,fool:.62,step:(u,s)=>u<.4?{vf:.5,vl:0,bf:.5,by:u*1.1}:{vf:4,vl:s*4.4,bf:.6,bl:s*.6}},
+  elTornado:{dur:.75,fool:.75,step:(u,s,k,m,p)=>{k.h0??=p.heading;return u<.45?{vf:.4,vl:s*2.2,bf:.4,by:u*1.2,heading:k.h0-s*u/.45*Math.PI*2}:{vf:7,vl:0,bf:.2,heading:k.h0,release:{f:8,y:5.8,noCatch:.3}}}},
+  dragBackFake:{dur:.72,fool:.65,step:(u,s)=>u<.3?{vf:-2,vl:0,bf:-.6}:u<.55?{vf:.5,vl:-s*2.2,bf:.4,bl:-s*.4}:{vf:4.2,vl:s*5.2,bf:.7,bl:s*.6}},
+  juggle:{dur:.95,fool:.25,step:u=>({vf:0,vl:0,bf:.45,by:Math.abs(Math.sin(u*Math.PI*3))*.75})},
+  footFake:{dur:.42,fool:.42,step:(u,s)=>({vf:.8,vl:s*wave(u*2)*2.6,bf:.6})},
+  frogJump:{dur:.6,fool:.48,step:u=>({vf:2.8,vl:0,bf:.4,by:Math.sin(Math.PI*u)*.65})},
+  fakePass:{dur:.58,fool:.62,reach:6.5,step:(u,s)=>u<.42?{vf:.3,vl:0,bf:.6}:{vf:2.4,vl:s*5.4,bf:.55,bl:s*.6}},
+  heelToHeel:{dur:.55,fool:.6,reach:6.5,step:(u,s)=>u<.45?{vf:.3,vl:0,bf:.6}:{vf:5.5,vl:0,bf:.95}},
+  fancyDragBack:{dur:.6,fool:.65,reach:6.5,step:(u,s)=>u<.45?{vf:.3,vl:0,bf:.6}:{vf:-3.5,vl:s*3,bf:-.6,bl:s*.4}},
+  rabonaFake:{dur:.65,fool:.72,reach:6.5,step:(u,s)=>u<.5?{vf:.2,vl:0,bf:.6}:{vf:2,vl:s*6.2,bf:.55,bl:s*.65}},
 };
+export const SKILL_NAMES=Object.keys(SKILLS);
 
 const distance = (a,b) => Math.hypot(a.x-b.x,a.z-b.z);
 const signOf = team => team===0?1:-1;
@@ -413,9 +435,9 @@ export class Match {
   // Skill moves (Shift + arrows, Q feints, Z + back drag-back, D/A then S fakes) for the human carrier.
   // Each move scripts the player's velocity and the ball's offset in the attacker's frame (f = toward goal,
   // l = attacker's left) and wrong-foots defenders close by.
-  startSkill(name,side=1){
-    const p=this.players[this.selected],def=SKILLS[name];
-    if(!def||this.mode!=='player'||!this.running||this.paused||this.ended||this.phase!=='play'||this.restart||this.goalWait>0||this.kickoffState||this.owner!==p?.id||p.index===0||p.skill)return false;
+  startSkill(name,side=1,player=null){
+    const p=player??this.players[this.selected],def=SKILLS[name];
+    if(!def||!player&&this.mode!=='player'||!this.running||this.paused||this.ended||this.phase!=='play'||this.restart||this.goalWait>0||this.kickoffState||this.owner!==p?.id||p.index===0||p.skill&&!['feint','bigFeint'].includes(p.skill.name))return false;
     this.charge=null;this.pending=null;
     p.skill={name,t:0,dur:def.dur,side:side>=0?1:-1,s:this.attackSign(p.team),released:false,ball:{f:.75,l:0,y:0}};
     p.skillImmuneUntil=this.controlTime+def.dur;
@@ -423,11 +445,11 @@ export class Match {
     if(def.kick)p.kickAnim=.28,p.kickStyle=def.kick;
     return true;
   }
-  fakeKick(){
+  fakeKick(variant=null){
     const p=this.players[this.selected];if(!this.charge||!['shoot','cross'].includes(this.charge.type)||this.owner!==p?.id)return false;
     const kind=this.charge.type,s=this.attackSign(p.team),lateral=-this.input.z*s,back=this.input.x*s<-.3;
     this.charge=null;
-    return this.startSkill(back?'scoopTurn':'fakeCut',lateral>=0?1:-1)&&(p.kickStyle=kind==='shoot'?'shoot':'cross',true);
+    return this.startSkill(variant??(back?'scoopTurn':'fakeCut'),lateral>=0?1:-1)&&(p.kickStyle=kind==='shoot'?'shoot':'cross',true);
   }
   stepSkill(p,dt){
     const k=p.skill,def=SKILLS[k.name];k.t+=dt;const u=clamp(k.t/k.dur,0,1),s=k.s;
@@ -787,6 +809,8 @@ export class Match {
     if(p.decision<=0){
       const goalDistance=distance(p,{x:s*52.5,z:0});
       if(p.index===0){if(gap<5||!keeperCanHandle(this,p)){this.keeperClearance(p);return;}this.strike(p,'pass',.45);return;}
+      // Skilful AI dribblers beat a close defender with a move; tricksters do it most.
+      const st=traits(p).stars;if(st>=3&&pressure&&gap<2.6&&(this.random??Math.random)()<(st-2)*.13){const moves=st>=5?['elastico','turnSpin','stepover','hocusPocus','bodyFeint']:st>=4?['stepover','roulette','bodyFeint']:['bodyFeint','stepover'],move=moves[Math.floor((this.random??Math.random)()*moves.length)],side=(pressure.z-p.z)*s>0?-1:1;if(this.startSkill(move,side,p)){p.decision=.35;return;}}
       const window=shootingWindow(this,p),shotLane=window.lane;
       const range=traits(p).longShot,shoot=(goalDistance<18&&Math.abs(p.z)<10&&shotLane>.75)||(goalDistance<31*Math.min(1.12,range)&&Math.abs(p.z)<14&&shotLane>1.2)||(goalDistance<36&&Math.abs(p.z)<10&&gap>5&&shotLane>2)||(goalDistance<12&&gap<3&&Math.abs(p.z)<8&&shotLane>.4);
       if(shoot){const keeper=this.players[(1-p.team)*11],offLine=52.3-Math.abs(keeper.x),style=offLine>7&&goalDistance<23?'chip':goalDistance>25?(shotLane>2&&gap>4?'power':'finesse'):goalDistance>17?'finesse':'auto',power=style==='power'?.82:style==='chip'?.5:.48+(p.index%3)*.08;p.aiShotAimZ=window.z;this.strike(p,'shoot',power,null,null,style);return;}

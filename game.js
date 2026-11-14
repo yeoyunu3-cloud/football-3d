@@ -1,25 +1,25 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-skip';
-import {fillEventRow} from './event-format.js?v=20261114-skip';
-import {applyClub,defaultClub} from './roster.js?v=20261114-skip';
-import {ARCHETYPES,archetypeOf} from './player-traits.js?v=20261114-skip';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-skip';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-skip';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-skip';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-skip';
-import {paintKit} from './kit-art.js?v=20261114-skip';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-skip';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-skip';
-import {netOffset} from './goal-effects.js?v=20261114-skip';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_PATTERNS,SKILL_HOLDS,relativeArrow,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-skip';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-tricks2';
+import {fillEventRow} from './event-format.js?v=20261114-tricks2';
+import {applyClub,defaultClub} from './roster.js?v=20261114-tricks2';
+import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-tricks2';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-tricks2';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-tricks2';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-tricks2';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-tricks2';
+import {paintKit} from './kit-art.js?v=20261114-tricks2';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-tricks2';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-tricks2';
+import {netOffset} from './goal-effects.js?v=20261114-tricks2';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-tricks2';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-skip';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-skip';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-skip';
-import { saveMatch } from './squads.js?v=20261114-skip';
-import { notify,textNode } from './ui.js?v=20261114-skip';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-skip';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-skip';
-import { keeperPose } from './keeper.js?v=20261114-skip';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-tricks2';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-tricks2';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-tricks2';
+import { saveMatch } from './squads.js?v=20261114-tricks2';
+import { notify,textNode } from './ui.js?v=20261114-tricks2';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-tricks2';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-tricks2';
+import { keeperPose } from './keeper.js?v=20261114-tricks2';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -258,29 +258,44 @@ function updateBallSound(dt){
     if(p.holdingBall)s.carry=0;else{s.carry+=speed*dt;if(speed>1&&s.carry>=stride){s.carry-=stride;playTouch(owner===match.selected?Math.min(1,.25+speed/14):.12);}}}
   s.owner=owner;s.kick=match.lastKick;s.lastTouch=match.lastTouch;
 }
-const physicalKeys={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyQ:'q',KeyE:'e',KeyR:'r',KeyX:'x',KeyZ:'z',KeyC:'c',KeyF:'f',Digit1:'1',Digit2:'2',Digit3:'3',Digit4:'4',Space:' ',ShiftLeft:'shift',ShiftRight:'shift',ControlLeft:'control',ControlRight:'control'};
+const physicalKeys={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyQ:'q',KeyE:'e',KeyR:'r',KeyX:'x',KeyZ:'z',KeyC:'c',KeyF:'f',Digit1:'1',Digit2:'2',Digit3:'3',Digit4:'4',Space:' ',ShiftLeft:'shift',ShiftRight:'shift',ControlLeft:'control',ControlRight:'control',Backquote:'`'};
 // Double-tap state: a released cross/shot waits DOUBLE_TAP_MS for a second tap (땅볼 크로스 / 깔아차기).
 let tapRelease=null,lastTap={};const suppressKeyup=new Set();
 function clearTapRelease(){if(tapRelease)clearTimeout(tapRelease.timer);tapRelease=null;}
-// Skill input: Shift + arrow taps are buffered (relative to the attacking direction) and matched shortly after
-// the last tap; a single Shift + arrow held still triggers the hold moves. Shift + arrow on defence switches player.
+// Skill input (keyboard skill guide): arrows are read as written in the guide (↑ forward, ← left), buffered while
+// Shift (or Z) is held and matched shortly after the last tap; Shift + one arrow held still gives the hold moves.
+// The move that comes out depends on the player's skill stars. Shift + arrow on defence switches player.
 let skillBuffer=[],skillTimer=null,skillHold=null;
+const skillStars=()=>traits(match.players[match.selected]).stars??3;
+function fireSkill(options,fallbackSide){const hit=pickSkill(options,skillStars());if(!hit)return false;start();return match.startSkill(hit[1],hit[2]??fallbackSide);}
 function skillInput(key){
-  const c=controls();if(!c.skill)return false;const ctx=actionContext(),dir=relativeArrow(key,match.attackSign(0));if(!dir)return false;
-  if(keys.has(c.skill)&&!ctx.attacking){const v={F:[1,0],B:[-1,0],L:[0,-1],R:[0,1]}[dir],s=match.attackSign(0);return match.switchToward(v[0]*s,v[1]*s);}
+  const c=controls();if(!c.skill)return false;const ctx=actionContext(),dir=skillArrow(key);if(!dir)return false;
+  if(keys.has(c.skill)&&!ctx.attacking){const v={arrowright:[1,0],arrowleft:[-1,0],arrowup:[0,-1],arrowdown:[0,1]}[key];return match.switchToward(v[0],v[1]);}
   if(!ctx.attacking||match.charge)return false;
-  if(keys.has('z')&&!keys.has(c.skill)&&dir==='B')return match.startSkill('dragBack',1);
-  if(!keys.has(c.skill))return false;
-  skillBuffer.push(dir);skillHold={dir,at:performance.now(),fired:false};clearTimeout(skillTimer);
-  skillTimer=setTimeout(()=>{const seq=skillBuffer.join(',');skillBuffer=[];const hit=SKILL_PATTERNS.find(([pattern])=>pattern===seq)??SKILL_PATTERNS.find(([pattern])=>pattern===seq.split(',').at(-1));if(hit&&!skillHold?.fired){skillHold&&(skillHold.fired=true);start();match.startSkill(hit[1],hit[2]);}},160);
-  return false;
+  const table=keys.has(c.skill)?(keys.has('z')?'shiftZ':keys.has('q')?'shiftQ':'shift'):keys.has('z')?'z':null;if(!table)return false;
+  skillBuffer.push(dir);skillHold=table==='shift'?{dir,at:performance.now(),fired:false}:null;clearTimeout(skillTimer);
+  skillTimer=setTimeout(()=>{const seq=skillBuffer.join(',');skillBuffer=[];if(skillHold?.fired)return;const commands=SKILL_COMMANDS[table],options=commands[seq]??commands[seq.split(',').at(-1)];
+    // A single arrow still held may become a hold move: decide on release, or after 350 ms of holding.
+    if(skillHold&&!seq.includes(',')&&keys.has(key)){const hold=skillHold;hold.pendingTap=options;setTimeout(()=>{if(hold!==skillHold||hold.fired)return;hold.fired=true;if(keys.has(key)&&keys.has(c.skill))fireSkill(SKILL_HOLDS[hold.dir]);else fireSkill(hold.pendingTap);},Math.max(0,350-(performance.now()-hold.at)));return;}
+    if(fireSkill(options))skillHold&&(skillHold.fired=true);},170);
+  return table==='z';
 }
 function updateSkillHold(){
   const c=controls();if(!skillHold||skillHold.fired||!c.skill||!keys.has(c.skill)){if(skillHold&&!keys.has(c.skill??''))skillHold=null;return;}
   const held=['arrowup','arrowdown','arrowleft','arrowright'].filter(k=>keys.has(k));
-  if(held.length!==1||relativeArrow(held[0],match.attackSign(0))!==skillHold.dir||performance.now()-skillHold.at<350)return;
-  const move=SKILL_HOLDS[skillHold.dir];skillHold.fired=true;clearTimeout(skillTimer);skillBuffer=[];if(move&&actionContext().attacking){start();match.startSkill(move[0],move[1]);}
+  if(held.length!==1||skillArrow(held[0])!==skillHold.dir||performance.now()-skillHold.at<350)return;
+  skillHold.fired=true;clearTimeout(skillTimer);skillBuffer=[];if(actionContext().attacking)fireSkill(SKILL_HOLDS[skillHold.dir]);
 }
+// Non-Shift guide moves: C + Z 볼 저글링, Q + Z 풋 페이크, ` 개구리 점프.
+function extraSkill(key){
+  if(!actionContext().attacking||match.charge)return false;
+  if(key==='z'&&keys.has('c'))return fireSkill([[1,'juggle',1]]);
+  if(key==='z'&&keys.has('q'))return fireSkill([[1,'footFake',Math.sign(-match.input.z*match.attackSign(0))||1]]);
+  if(key==='`')return fireSkill([[4,'frogJump',1]]);
+  return false;
+}
+// 헛스윙(A·D 후 S), 페이크 패스(E + A 후 S), 힐투힐 / 펜시 드래그 백(C + ↑ + A 후 S), 라보나 페이크(C + ↓ + A 후 S).
+function fakeVariant(){const stars=skillStars();if(keys.has('c')&&keys.has('arrowup'))return stars>=5?'fancyDragBack':'heelToHeel';if(keys.has('c')&&keys.has('arrowdown')&&stars>=5)return 'rabonaFake';if(keys.has(controls().sprint)&&stars>=4)return 'fakePass';return null;}
 const inputKey=e=>physicalKeys[e.code]??e.key.toLowerCase();
 const actionContext=()=>({throwing:match.restart?.type==='throw'&&match.selected===match.restart.taker,defending:!match.restart&&match.owner>=0&&match.players[match.owner]?.team===1,attacking:!match.restart&&match.owner>=0&&match.owner===match.selected});
 window.addEventListener('keydown',e=>{
@@ -292,7 +307,7 @@ window.addEventListener('keydown',e=>{
   if(match.mode==='manager')return;
   if(key==='r'&&!e.repeat&&(match.charge||match.pending||match.restart?.queuedKick)){match.cancelKick();e.preventDefault();return;}
   if(key==='f'&&match.dropKeeperBall()){e.preventDefault();return;}
-  if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','shift','q',' ','e','r','x','z','c','f','control','1','2','3','4'].includes(key)){
+  if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','shift','q',' ','e','r','x','z','c','f','control','1','2','3','4','`'].includes(key)){
     e.preventDefault();keys.add(key);
     if(!e.repeat&&isCancelCombo(keys,controlPreset)&&(match.charge||match.pending||match.restart?.queuedKick)){match.cancelKick();return;}
     if(!e.repeat&&key===controls().keeperDrop&&match.dropKeeperBall())return;
@@ -304,16 +319,17 @@ window.addEventListener('keydown',e=>{
     const now=performance.now(),doubleTapped=!e.repeat&&now-(lastTap[key]??-1e9)<280;if(!e.repeat)lastTap[key]=now;
     if(!e.repeat&&controls().knockOn&&key===controls().knockOn){sampleInput();if(match.knockOn())return;}
     // D 후 S / A 후 S: a charging shot or cross turned into a fake.
-    if(!e.repeat&&key===controls().fakeWith&&['shoot','cross'].includes(match.charge?.type)){clearTapRelease();sampleInput();if(match.fakeKick())return;}
+    if(!e.repeat&&key===controls().fakeWith&&['shoot','cross'].includes(match.charge?.type)){clearTapRelease();sampleInput();if(match.fakeKick(fakeVariant()))return;}
+    if(!e.repeat&&extraSkill(key))return;
     if(!e.repeat&&key.startsWith('arrow')&&skillInput(key))return;
     if(['q','c','z'].includes(key)&&['pass','through','cross'].includes(match.charge?.type)){const style=kickStyleFor(match.charge.type,keys);if(style!=='auto')match.modifyKickStyle(style);sampleInput();return;}
     if(shotModKeys(controlPreset).includes(key)&&match.charge?.type==='shoot'){match.modifyShotStyle(shotStyleFor(keys,'auto',controlPreset));sampleInput();return;}
     // Read directional input before a same-frame pass or shot.
     sampleInput();
-    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'){start();const side=Math.sign(-match.input.z*match.attackSign(0))||1;match.startSkill(keys.has(controls().sprint)?'bigFeint':'feint',side);}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
+    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'&&keys.has(controls().skill)){start();}else if(action==='feint'){start();const side=Math.sign(-match.input.z*match.attackSign(0))||1;match.startSkill(keys.has(controls().sprint)?'bigFeint':'feint',side);}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
   }
 });
-window.addEventListener('keyup',e=>{const key=inputKey(e),action=actionFor(key,controlPreset,{...actionContext(),defending:false,attacking:false});keys.delete(key);if(suppressKeyup.delete(key))return;
+window.addEventListener('keyup',e=>{const key=inputKey(e),action=actionFor(key,controlPreset,{...actionContext(),defending:false,attacking:false});keys.delete(key);if(skillHold?.pendingTap&&!skillHold.fired&&skillArrow(key)===skillHold.dir){skillHold.fired=true;fireSkill(skillHold.pendingTap);}if(suppressKeyup.delete(key))return;
   if(controls().doubleTap?.[action]&&match.charge?.type===action&&match.freezeKickPower(action)){clearTapRelease();tapRelease={key,type:action,timer:setTimeout(()=>{if(tapRelease?.key!==key)return;tapRelease=null;sampleInput();endAction(action);},DOUBLE_TAP_MS)};return;}
   if(action&&action!=='switch')endAction(action);});
 function releaseInputs(){drawing=null;match.charge=null;keys.clear();clearTapRelease();suppressKeyup.clear();joy.x=joy.y=0;touchSprint=false;match.setInput(0,0,false);$('stick').style.transform='';$('sprint').classList.remove('pressed');}
