@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-charge2';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-charge2';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-charge2';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-charge2';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-charge2';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-charge2';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-charge2';
-import {shapeTarget} from './formation-shape.js?v=20261114-charge2';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-charge2';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-charge2';
-import {planThroughPass} from './through-pass.js?v=20261114-charge2';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-charge2';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-charge2';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-charge2';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-charge2';
-import {stepGoalBall} from './goal-effects.js?v=20261114-charge2';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-charge2';
-import {Shootout} from './shootout.js?v=20261114-charge2';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-charge2';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-charge2';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-skip';
+import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-skip';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-skip';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-skip';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-skip';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-skip';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-skip';
+import {shapeTarget} from './formation-shape.js?v=20261114-skip';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-skip';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-skip';
+import {planThroughPass} from './through-pass.js?v=20261114-skip';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-skip';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-skip';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-skip';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-skip';
+import {stepGoalBall} from './goal-effects.js?v=20261114-skip';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-skip';
+import {Shootout} from './shootout.js?v=20261114-skip';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-skip';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-skip';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -344,6 +344,8 @@ export class Match {
     const keeper=this.players[this.selected];if(isHumanKeeper(this,keeper)&&keeper.holdingBall)return startKeeperRelease(this,keeper,type==='pass'||type==='through'?'throw':'sideVolley',clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1));
     return this.kick(type,clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1),charge.shotStyle);
   }
+  // S during a goal celebration skips straight to the kickoff.
+  skipCelebration(){if(!this.running||this.paused||this.ended||this.phase!=='play'||this.goalWait<=0)return false;this.goalWait=1e-4;if(this.notice)this.notice.remaining=Math.min(this.notice.remaining??0,.6);if(this.highlight)this.highlight.remaining=0;return true;}
   dropKeeperBall(){const p=this.players[this.selected];return isHumanKeeper(this,p)&&startKeeperRelease(this,p,'drop',0);}
   modifyShotStyle(style){if(!this.charge||this.charge.type!=='shoot'||!['chip','power','finesse','low','rabona'].includes(style))return false;this.charge.shotStyle=style;return true;}
   modifyKickStyle(style){const allowed={shoot:['chip','power','finesse','low','rabona'],cross:['curl','ground','early','low','bounce'],pass:['curl','lead','flair','drive'],through:['lob','driven']}[this.charge?.type];if(!allowed?.includes(style))return false;this.charge.shotStyle=style;return true;}

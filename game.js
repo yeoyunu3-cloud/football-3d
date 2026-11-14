@@ -1,25 +1,25 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-charge2';
-import {fillEventRow} from './event-format.js?v=20261114-charge2';
-import {applyClub,defaultClub} from './roster.js?v=20261114-charge2';
-import {ARCHETYPES,archetypeOf} from './player-traits.js?v=20261114-charge2';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-charge2';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-charge2';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-charge2';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-charge2';
-import {paintKit} from './kit-art.js?v=20261114-charge2';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-charge2';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-charge2';
-import {netOffset} from './goal-effects.js?v=20261114-charge2';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_PATTERNS,SKILL_HOLDS,relativeArrow,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-charge2';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-skip';
+import {fillEventRow} from './event-format.js?v=20261114-skip';
+import {applyClub,defaultClub} from './roster.js?v=20261114-skip';
+import {ARCHETYPES,archetypeOf} from './player-traits.js?v=20261114-skip';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-skip';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-skip';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-skip';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-skip';
+import {paintKit} from './kit-art.js?v=20261114-skip';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-skip';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-skip';
+import {netOffset} from './goal-effects.js?v=20261114-skip';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_PATTERNS,SKILL_HOLDS,relativeArrow,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-skip';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-charge2';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-charge2';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-charge2';
-import { saveMatch } from './squads.js?v=20261114-charge2';
-import { notify,textNode } from './ui.js?v=20261114-charge2';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-charge2';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-charge2';
-import { keeperPose } from './keeper.js?v=20261114-charge2';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-skip';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-skip';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-skip';
+import { saveMatch } from './squads.js?v=20261114-skip';
+import { notify,textNode } from './ui.js?v=20261114-skip';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-skip';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-skip';
+import { keeperPose } from './keeper.js?v=20261114-skip';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -288,6 +288,7 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Escape'){e.preventDefault();if(!e.repeat){if(exitDialog.open)closeExitMenu();else openExitMenu();}return;}
   if(exitDialog.open||['SELECT','INPUT','TEXTAREA'].includes(e.target.tagName))return;
   const key=inputKey(e);
+  if(key==='s'&&!e.repeat&&match.skipCelebration()){e.preventDefault();return;}
   if(match.mode==='manager')return;
   if(key==='r'&&!e.repeat&&(match.charge||match.pending||match.restart?.queuedKick)){match.cancelKick();e.preventDefault();return;}
   if(key==='f'&&match.dropKeeperBall()){e.preventDefault();return;}

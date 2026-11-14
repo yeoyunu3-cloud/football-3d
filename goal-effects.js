@@ -1,4 +1,4 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-charge2';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-skip';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function stepGoalBall(match,dt){
   const n=match.goalNet;if(!n)return;const b=match.ball;n.elapsed+=dt;
