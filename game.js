@@ -337,14 +337,15 @@ function cameraUpdate(dt,immediate=false){
   // Parallel touchline camera: screen right is always attacking right.
   const r=match.restart,s=match.attackSign(r?.team??0);
   const x=r?THREE.MathUtils.clamp(r.type==='corner'?r.x-s*8:r.type==='goalKick'?r.x+s*7:r.x+s*6,-47,47):THREE.MathUtils.clamp(match.mode==='manager'?b.x:p.x*.42+b.x*.58,match.goalWait>0?-49:-39,match.goalWait>0?49:39);
-  const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
+  // Player mode follows the play across the pitch so the close broadcast camera keeps players large.
+  const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):match.mode==='player'&&!r?THREE.MathUtils.clamp((p.z*.4+b.z*.6)*.75,-22,22):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
   const ideal=new THREE.Vector3(x*FIELD_SCALE,0,z*FIELD_SCALE);
   focus.lerp(ideal,immediate?1:1-Math.exp(-dt*(r?7:4.5)));
-  cameraTarget.copy(focus);
+  cameraTarget.copy(focus);if(match.mode==='player'&&!r&&match.goalWait<=0)cameraTarget.y=1;
   const narrow=camera.aspect<.8;
   const direct=match.mode==='player'&&!r;
-  // Higher, steeper view so players don't hide behind each other.
-  cameraPosition.set(focus.x,narrow?60:direct?40:43,focus.z+(narrow?36:direct?23:25));
+  // Close broadcast view in player mode (players read large, like a TV match camera).
+  cameraPosition.set(focus.x,narrow?30:direct?15:43,focus.z+(narrow?30:direct?21:25));
   if(match.goalWait>0)cameraPosition.set(focus.x,28,focus.z+20);
   camera.position.lerp(cameraPosition,immediate?1:1-Math.exp(-dt*6));camera.lookAt(cameraTarget);
 }
