@@ -1,6 +1,6 @@
-import {FIELD_SCALE} from './visual-scale.js?v=20261114-setpiece6';
-import {distributionPose} from './keeper-control.js?v=20261114-setpiece6';
-import {forecastBall} from './ball-flight.js?v=20261114-setpiece6';
+import {FIELD_SCALE} from './visual-scale.js?v=20261114-corner3';
+import {distributionPose} from './keeper-control.js?v=20261114-corner3';
+import {forecastBall} from './ball-flight.js?v=20261114-corner3';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const length=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const predictBall=forecastBall;

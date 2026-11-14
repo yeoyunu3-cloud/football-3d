@@ -1,25 +1,25 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-setpiece6';
-import {fillEventRow} from './event-format.js?v=20261114-setpiece6';
-import {applyClub,defaultClub} from './roster.js?v=20261114-setpiece6';
-import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-setpiece6';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-setpiece6';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-setpiece6';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-setpiece6';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-setpiece6';
-import {paintKit} from './kit-art.js?v=20261114-setpiece6';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-setpiece6';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-setpiece6';
-import {netOffset} from './goal-effects.js?v=20261114-setpiece6';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-setpiece6';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-corner3';
+import {fillEventRow} from './event-format.js?v=20261114-corner3';
+import {applyClub,defaultClub} from './roster.js?v=20261114-corner3';
+import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-corner3';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-corner3';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-corner3';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-corner3';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-corner3';
+import {paintKit} from './kit-art.js?v=20261114-corner3';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-corner3';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-corner3';
+import {netOffset} from './goal-effects.js?v=20261114-corner3';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-corner3';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-setpiece6';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-setpiece6';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-setpiece6';
-import { saveMatch } from './squads.js?v=20261114-setpiece6';
-import { notify,textNode } from './ui.js?v=20261114-setpiece6';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-setpiece6';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-setpiece6';
-import { keeperPose } from './keeper.js?v=20261114-setpiece6';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-corner3';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-corner3';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-corner3';
+import { saveMatch } from './squads.js?v=20261114-corner3';
+import { notify,textNode } from './ui.js?v=20261114-corner3';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-corner3';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-corner3';
+import { keeperPose } from './keeper.js?v=20261114-corner3';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -197,7 +197,8 @@ const replayBadge=document.createElement('div');replayBadge.className='replay-ba
 let replayBadgeState='';
 function updateReplayBadge(){
   const sp=match.restart?.view&&match.mode==='player'?match.restart:null,shootKey=keyLabel(controls().shoot);
-  const spText=!sp?'':sp.view==='attack'?(sp.type==='penalty'?`<b>페널티킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>누른 만큼 세게</span>`:`<b>프리킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>슛 · 누른 만큼 세게</span>`):sp.type==='penalty'?`<b>페널티킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>다이빙 방향: ${sp.keeperChoice?(sp.keeperChoice*match.attackSign(0)>0?'왼쪽':'오른쪽'):'가운데'} · ${Math.ceil(sp.wait)}초</span>`:`<b>프리킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동</span><kbd>${shootKey}</kbd><span>벽 점프 · ${Math.ceil(sp.wait)}초</span>`;
+  const cross=keyLabel(controls().cross),pass=keyLabel(controls().pass);
+  const spText=!sp?'':sp.type==='corner'?(sp.view==='attack'?`<b>코너킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${cross}</kbd><span>크로스 · 누른 만큼 멀리</span><kbd>${pass}</kbd><span>짧은 패스</span>`:`<b>코너킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동 · ${Math.ceil(sp.wait)}초</span>`):sp.view==='attack'?(sp.type==='penalty'?`<b>페널티킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>누른 만큼 세게</span>`:`<b>프리킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>슛 · 누른 만큼 세게</span>`):sp.type==='penalty'?`<b>페널티킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>다이빙 방향: ${sp.keeperChoice?(sp.keeperChoice*match.attackSign(0)>0?'왼쪽':'오른쪽'):'가운데'} · ${Math.ceil(sp.wait)}초</span>`:`<b>프리킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동</span><kbd>${shootKey}</kbd><span>벽 점프 · ${Math.ceil(sp.wait)}초</span>`;
   const state=homeOpen||!match.running||match.ended?'':match.phase==='replay'?'replay':match.phase==='play'&&match.goalWait>0?'celebration':spText;
   if(state===replayBadgeState)return;replayBadgeState=state;replayBadge.hidden=!state;if(spText&&state===spText){replayBadge.innerHTML=spText;return;}
   replayBadge.innerHTML=state==='replay'?'<b>● REPLAY</b><span>골 다시보기</span><kbd>S</kbd><span>건너뛰기</span>':state==='celebration'?'<kbd>S</kbd><span>세리머니 건너뛰기</span>':'';
@@ -383,8 +384,8 @@ function cameraUpdate(dt,immediate=false){
   const sp=match.restart??(setPieceView&&performance.now()<setPieceView.until&&match.goalWait<=0?setPieceView.restart:null);
   if(sp?.view&&match.mode==='player'){
     if(match.restart)setPieceView={restart:sp,until:performance.now()+1500};
-    const K=FIELD_SCALE,gx=match.attackSign(sp.team)*52.5,dx=gx-sp.x,dz=-sp.z,d=Math.hypot(dx,dz)||1,back=sp.type==='penalty'?8.5:10,height=sp.view==='attack'?3.6:4.6;
-    camera.position.lerp(new THREE.Vector3((sp.x-dx/d*back)*K,height,(sp.z-dz/d*back)*K),immediate?1:1-Math.exp(-dt*5));camera.lookAt(gx*K,1.3,0);
+    const K=FIELD_SCALE,f=match.restartForward(sp),corner=sp.type==='corner',back=corner?10.5:sp.type==='penalty'?8.5:10,height=corner?7.5:sp.view==='attack'?3.6:4.6;
+    camera.position.lerp(new THREE.Vector3((sp.x-f.x*back)*K,height,(sp.z-f.z*back)*K),immediate?1:1-Math.exp(-dt*5));camera.lookAt(f.tx*K,corner?.6:1.3,f.tz*K);
     return;
   }
   // Parallel touchline camera: screen right is always attacking right.
@@ -492,7 +493,7 @@ const setPieceAim=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new T
 // Target ring on the goal mouth for the behind-the-ball free kick / penalty view.
 const aimTarget=new THREE.Mesh(new THREE.RingGeometry(.3,.46,28),new THREE.MeshBasicMaterial({color:0xffe27a,transparent:true,opacity:.95,depthTest:false,side:THREE.DoubleSide}));aimTarget.rotation.y=Math.PI/2;aimTarget.renderOrder=25;aimTarget.visible=false;scene.add(aimTarget);
 function updateSetPieceAim(){
-  {const v=match.restart;aimTarget.visible=Boolean(v?.manual&&v.view==='attack'&&match.mode==='player');if(aimTarget.visible)aimTarget.position.set(match.attackSign(v.team)*52.4,1.15,v.aimZ);}
+  {const v=match.restart;aimTarget.visible=Boolean(v?.manual&&v.view==='attack'&&v.type!=='corner'&&match.mode==='player');if(aimTarget.visible)aimTarget.position.set(match.attackSign(v.team)*52.4,1.15,v.aimZ);}
   const r=match.restart,pk=match.phase==='shootout'?match.shootout:null;if(pk){drawnTarget.visible=false;setPieceAim.visible=pk.turn===0&&match.mode==='player'&&['prepare','aim'].includes(pk.stage);if(setPieceAim.visible){const points=[new THREE.Vector3(41.5,.18,0),new THREE.Vector3(52.5,.18,pk.aim)];if(setPieceAim.geometry.getAttribute('position').count!==2){setPieceAim.geometry.dispose();setPieceAim.geometry=new THREE.BufferGeometry().setFromPoints(points);}else setPieceAim.geometry.setFromPoints(points);setPieceAim.computeLineDistances();}return;}setPieceAim.visible=Boolean(r?.manual);drawnTarget.visible=Boolean(r?.manual&&r.plan);if(r?.plan)drawnTarget.position.set(r.plan.end.x,.13,r.plan.end.z);if(!r?.manual)return;
   let points;if(r.plan)points=kickPreview(r,r.plan).map(p=>new THREE.Vector3(p.x,p.y,p.z));
   else {const end=['penalty','freeKick','indirect'].includes(r.type)?{x:match.attackSign(r.team)*52.5,z:r.aimZ}:{x:r.x+r.aim.x*18,z:r.z+r.aim.z*18};points=[new THREE.Vector3(r.x,.18,r.z),new THREE.Vector3(end.x,.18,end.z)];}
