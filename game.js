@@ -1,25 +1,26 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-traits3';
-import {fillEventRow} from './event-format.js?v=20261114-traits3';
-import {applyClub,defaultClub} from './roster.js?v=20261114-traits3';
-import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-traits3';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-traits3';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-traits3';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-traits3';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-traits3';
-import {paintKit} from './kit-art.js?v=20261114-traits3';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-traits3';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-traits3';
-import {netOffset} from './goal-effects.js?v=20261114-traits3';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-traits3';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-online4';
+import {fillEventRow} from './event-format.js?v=20261114-online4';
+import {createOnline,validRoomName} from './online.js?v=20261114-online4';
+import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-online4';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-online4';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-online4';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-online4';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-online4';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-online4';
+import {paintKit} from './kit-art.js?v=20261114-online4';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-online4';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-online4';
+import {netOffset} from './goal-effects.js?v=20261114-online4';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-online4';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-traits3';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-traits3';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-traits3';
-import { saveMatch } from './squads.js?v=20261114-traits3';
-import { notify,textNode } from './ui.js?v=20261114-traits3';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-traits3';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-traits3';
-import { keeperPose } from './keeper.js?v=20261114-traits3';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-online4';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-online4';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-online4';
+import { saveMatch } from './squads.js?v=20261114-online4';
+import { notify,textNode } from './ui.js?v=20261114-online4';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-online4';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-online4';
+import { keeperPose } from './keeper.js?v=20261114-online4';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -198,7 +199,7 @@ let replayBadgeState='';
 function updateReplayBadge(){
   const sp=match.restart?.view&&match.mode==='player'?match.restart:null,shootKey=keyLabel(controls().shoot);
   const cross=keyLabel(controls().cross),pass=keyLabel(controls().pass);
-  const spText=!sp?'':sp.type==='corner'?(sp.view==='attack'?`<b>코너킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${cross}</kbd><span>크로스 · 누른 만큼 멀리</span><kbd>${pass}</kbd><span>짧은 패스</span>`:`<b>코너킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동 · ${Math.ceil(sp.wait)}초</span>`):sp.view==='attack'?(sp.type==='penalty'?`<b>페널티킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>누른 만큼 세게</span>`:`<b>프리킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>슛 · 누른 만큼 세게</span>`):sp.type==='penalty'?`<b>페널티킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>다이빙 방향: ${sp.keeperChoice?(sp.keeperChoice*match.attackSign(0)>0?'왼쪽':'오른쪽'):'가운데'} · ${Math.ceil(sp.wait)}초</span>`:`<b>프리킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동</span><kbd>${shootKey}</kbd><span>벽 점프 · ${Math.ceil(sp.wait)}초</span>`;
+  const spText=!sp?'':sp.view==='spectate'?`<b>${({corner:'코너킥',freeKick:'프리킥',penalty:'페널티킥'})[sp.type]??'세트피스'}</b><span>${sp.team===0?'홈 팀':'원정 팀'} · 자동 진행</span>`:sp.type==='corner'?(sp.view==='attack'?`<b>코너킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${cross}</kbd><span>크로스 · 누른 만큼 멀리</span><kbd>${pass}</kbd><span>짧은 패스</span>`:`<b>코너킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동 · ${Math.ceil(sp.wait)}초</span>`):sp.view==='attack'?(sp.type==='penalty'?`<b>페널티킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>누른 만큼 세게</span>`:`<b>프리킥</b><kbd>←</kbd><kbd>→</kbd><span>조준</span><kbd>${shootKey}</kbd><span>슛 · 누른 만큼 세게</span>`):sp.type==='penalty'?`<b>페널티킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>다이빙 방향: ${sp.keeperChoice?(sp.keeperChoice*match.attackSign(0)>0?'왼쪽':'오른쪽'):'가운데'} · ${Math.ceil(sp.wait)}초</span>`:`<b>프리킥 수비</b><kbd>←</kbd><kbd>→</kbd><span>키퍼 이동</span><kbd>${shootKey}</kbd><span>벽 점프 · ${Math.ceil(sp.wait)}초</span>`;
   const state=homeOpen||!match.running||match.ended?'':match.phase==='replay'?'replay':match.phase==='play'&&match.goalWait>0?'celebration':spText;
   if(state===replayBadgeState)return;replayBadgeState=state;replayBadge.hidden=!state;if(spText&&state===spText){replayBadge.innerHTML=spText;return;}
   replayBadge.innerHTML=state==='replay'?'<b>● REPLAY</b><span>골 다시보기</span><kbd>S</kbd><span>건너뛰기</span>':state==='celebration'?'<kbd>S</kbd><span>세리머니 건너뛰기</span>':'';
@@ -323,7 +324,7 @@ function extraSkill(key){
 // 헛스윙(A·D 후 S), 페이크 패스(E + A 후 S), 힐투힐 / 펜시 드래그 백(C + ↑ + A 후 S), 라보나 페이크(C + ↓ + A 후 S).
 function fakeVariant(){const stars=skillStars();if(keys.has('c')&&keys.has('arrowup'))return stars>=5?'fancyDragBack':'heelToHeel';if(keys.has('c')&&keys.has('arrowdown')&&stars>=5)return 'rabonaFake';if(keys.has(controls().sprint)&&stars>=4)return 'fakePass';return null;}
 const inputKey=e=>physicalKeys[e.code]??e.key.toLowerCase();
-const actionContext=()=>({throwing:match.restart?.type==='throw'&&match.selected===match.restart.taker,defending:!match.restart&&match.owner>=0&&match.players[match.owner]?.team===1,attacking:!match.restart&&match.owner>=0&&match.owner===match.selected});
+const actionContext=()=>({throwing:match.restart?.type==='throw'&&match.selected===match.restart.taker,defending:!match.restart&&match.owner>=0&&match.players[match.owner]?.team===(online?.isGuest?0:1),attacking:!match.restart&&match.owner>=0&&match.owner===match.selected});
 window.addEventListener('keydown',e=>{
   if(homeOpen)return;
   if(e.key==='Escape'){e.preventDefault();if(!e.repeat){if(exitDialog.open)closeExitMenu();else openExitMenu();}return;}
@@ -580,5 +581,29 @@ renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();r
 clubHome=initHome({match,preview(profile,index,kit){if(previewPlayer.index!==index){previewPlayer.group.visible=false;previewPlayer.shadow.visible=false;if(!previewModels.has(index)){const next=createPlayer(0,index,previewScene);next.group.position.set(0,.01,0);next.shadow.position.set(0,.065,0);previewModels.set(index,next);}previewPlayer=previewModels.get(index);previewPlayer.group.visible=true;previewPlayer.shadow.visible=true;}applyAppearance(previewPlayer,profile,kit);const scale=previewPlayer.group.scale.y,zoom=Math.max(1,scale*1.02);previewCamera.position.set(2.7*zoom,1.9*zoom,4.2*zoom);previewCamera.lookAt(0,1.07*scale,0);},onApply:applyRosterAppearance,onShow(){syncHUD();},onStart(mode,settings){$('match-sidebar').hidden=true;$('roster-toggle').setAttribute('aria-expanded','false');shownRestart=null;rosterBeforeRestart=true;for(const key of Object.keys(TACTIC_OPTIONS)){const value=mode==='manager'?settings[key]:'balanced';match.setTactic(key,value);$(key).value=value;}
   homeOpen=false;$('home').hidden=true;document.body.classList.remove('home-open');match.reset();const opponent=settings.opponent??{...defaultClub(),name:'상대 팀',kit:KIT_PRESETS.find(k=>k.id!==(match.kit?.id??'psg-home'))};applyClub(match,opponent,1);applyRosterAppearance();configureMode(mode,settings);start();syncHUD();cameraUpdate(0,true);
 }});
+// ---- Online 1 vs 1: room dialog (create with a name + optional password, or join by name) ----
+const onlineDialog=document.createElement('dialog');onlineDialog.className='online-dialog';
+onlineDialog.innerHTML=`<form method="dialog" class="online-form"><h2>온라인 1vs1</h2><p class="online-note">방을 만든 사람이 홈 팀, 들어온 사람이 원정 팀입니다. 서로의 브라우저가 직접 연결됩니다.</p>
+<label>방 이름<input id="online-room" maxlength="20" autocomplete="off" placeholder="예: myroom12" required></label>
+<label>비밀번호 <small>(선택 — 넣으면 비밀번호를 아는 사람만 입장)</small><input id="online-password" type="password" maxlength="30" autocomplete="off" placeholder="비워 두면 공개 방"></label>
+<p id="online-status" class="online-status" role="status"></p>
+<div class="online-actions"><button type="button" id="online-create">방 만들기</button><button type="button" id="online-join">방 참가</button><button type="button" id="online-cancel" class="ghost">닫기</button></div></form>`;
+document.body.append(onlineDialog);
+{const style=document.createElement('style');style.textContent='.online-dialog{border:1px solid #2c3948;border-radius:16px;background:#131b25;color:#eef2f6;padding:0;width:min(440px,92vw)}.online-dialog::backdrop{background:rgba(5,8,12,.72)}.online-form{display:grid;gap:14px;padding:24px}.online-form h2{margin:0;font-size:20px}.online-note{margin:0;color:#9fb0c3;font-size:13px;line-height:1.5}.online-form label{display:grid;gap:6px;font-size:13px;color:#c9d4e0}.online-form label small{color:#8395a8}.online-form input{padding:10px 12px;border-radius:9px;border:1px solid #33435a;background:#0d131b;color:#eef2f6;font-size:15px}.online-status{margin:0;min-height:20px;font-size:13px;color:#c5f773}.online-status[data-kind=error]{color:#ff8a7a}.online-status[data-kind=wait]{color:#ffe27a}.online-actions{display:flex;gap:8px;flex-wrap:wrap}.online-actions button{flex:1;padding:11px 12px;border-radius:9px;border:0;background:#c5f773;color:#10200a;font-weight:700;font-size:14px;cursor:pointer}.online-actions button.ghost{background:#263242;color:#dbe4ee;flex:0 0 auto}.online-actions button:disabled{opacity:.5;cursor:default}';document.head.append(style);}
+const onlineStatus=(text,kind='info')=>{$('online-status').textContent=text;$('online-status').dataset.kind=kind;};
+var online=createOnline({match,getClub:()=>sanitizeClub({...clubHome.club,name:clubHome.squadName??clubHome.club.name}),
+  launch(role,homeClub,awayClub){onlineDialog.close();applyClub(match,sanitizeClub(homeClub),0);clubHome.start('player',{opponent:sanitizeClub(awayClub)});},
+  onStatus:onlineStatus,
+  onClosed(reason,role){if(role==='guest'){alert(reason);location.reload();}else if(role==='host'){match.announce?.('info','온라인',reason,4);onlineStatus(reason,'error');}}});
+function onlineBusy(busy){for(const id of ['online-create','online-join'])$(id).disabled=busy;}
+async function onlineAction(kind){
+  const room=$('online-room').value.trim(),password=$('online-password').value;
+  if(!validRoomName(room)){onlineStatus('방 이름은 2~20자의 영문·숫자·한글·-·_ 만 쓸 수 있습니다.','error');return;}
+  onlineBusy(true);onlineStatus(kind==='create'?'방을 만드는 중…':'방에 접속하는 중…','wait');
+  try{if(kind==='create')await online.createRoom(room,password);else await online.joinRoom(room,password);}catch(error){onlineStatus(error.message,'error');onlineBusy(false);}
+}
+$('online-mode').onclick=()=>{onlineStatus('');onlineBusy(false);onlineDialog.showModal();};
+$('online-create').onclick=()=>onlineAction('create');$('online-join').onclick=()=>onlineAction('join');
+$('online-cancel').onclick=()=>{if(online.role&&!online.active)online.close();onlineDialog.close();};
 match.learning=loadLearning(clubHome.storage);syncHUD();cameraUpdate(0,true);requestAnimationFrame(frame);
 window.addEventListener('pagehide',()=>saveLearning(clubHome.storage,match.learning));

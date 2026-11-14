@@ -1,4 +1,4 @@
-import {hasTrait} from './player-traits.js?v=20261114-traits3';
+import {hasTrait} from './player-traits.js?v=20261114-online4';
 // Off-ball positioning built from real football principles rather than ball-chasing:
 //  - Out of possession the team defends as one compact block (flat back line, ~25 m deep),
 //    sliding across with the ball; only one player presses, and only on a pressing trigger.

@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-traits3';
-import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-traits3';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-traits3';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-traits3';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-traits3';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-traits3';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-traits3';
-import {shapeTarget} from './formation-shape.js?v=20261114-traits3';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-traits3';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-traits3';
-import {planThroughPass} from './through-pass.js?v=20261114-traits3';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-traits3';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-traits3';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-traits3';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-traits3';
-import {stepGoalBall} from './goal-effects.js?v=20261114-traits3';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-traits3';
-import {Shootout} from './shootout.js?v=20261114-traits3';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-traits3';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-traits3';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-online4';
+import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-online4';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-online4';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-online4';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-online4';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-online4';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-online4';
+import {shapeTarget} from './formation-shape.js?v=20261114-online4';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-online4';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-online4';
+import {planThroughPass} from './through-pass.js?v=20261114-online4';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-online4';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-online4';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-online4';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-online4';
+import {stepGoalBall} from './goal-effects.js?v=20261114-online4';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-online4';
+import {Shootout} from './shootout.js?v=20261114-online4';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-online4';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-online4';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -100,6 +100,7 @@ export class Match {
   set lastTouch(id){this._lastTouch=id;const p=this.players?.[id];if(p){this.lastTouchByTeam??=[-1,-1];this.lastTouchByTeam[p.team]=id;}}
   reset() {
     this.recFrames=[];this.recClock=0;this.replay=null;this.replayClip=null;this.goalClock=undefined;
+    if(this.remote)this.setRemote(true);
     this.id=`match-${Date.now().toString(36)}-${++matchSerial}`;this.startedAt=new Date().toISOString();this.variationSeed=hashSeed(this.id);this.lastTouchByTeam=[-1,-1];this.events=[];this.notice=null;this.controlTime=0;this.cardWait=0;this.finishLogged=false;this.throwState=null;this.half=1;this.forfeit=null;this.lastKick=null;this.phase='play';this.restart=null;this.offside=null;this.directRestart=null;this.score=[0,0];resetClock(this);this.shootout=null;this.winner=null;this.penaltyInFlight=false;this.penaltyFlightElapsed=0;this.running=false;this.ended=false;this.paused=false;this.goalWait=0;this.event='';this.stats={shots:[0,0],saves:[0,0],possession:[0,0],passes:[0,0],restarts:[{},{}]};this.manualSelection=false;this.defending=false;this.switchAt=0;this.selectionPossessionTeam=-1;this.charge=null;this.halftimeRemaining=0;this.inputRevision=0;this.highlight=null;this.lastTouchTeam=-1;this.selectionGrace=0;this.possessionWonAt=[0,0];this.lastPossessionTeam=-1;
     for(const p of this.players){p.shootoutGoalkeeper=false;p.shootoutExcluded=false;p.sentOff=false;p.yellow=0;p.fouls=0;p.stamina=100;p.keeperAction=null;p.holdingBall=false;p.aerial=null;p.trap=0;p.recover=0;p.controlCooldown=0;p.celebration=0;p.celebrationLift=0;p.observeCarryAt=0;p.wallUntil=0;p.wallJumpTime=0;p.distribution=null;p.keeperReleased=false;p.dribbleTarget=null;p.dribbleUntil=0;p.dribbleSide=0;p.feint=0;}
     this.kickoff(0);
@@ -429,11 +430,11 @@ export class Match {
   freezeKickPower(type){if(this.charge?.type!==type)return false;this.charge.releasedAt??=this.controlTime;return true;}
   canTackle(p){return this.mode==='player'&&this.running&&!this.paused&&!this.ended&&this.phase==='play'&&!this.restart&&this.goalWait<=0&&this.cardWait<=0&&!this.kickoffState&&p&&!p.sentOff&&p.index!==0&&this.owner!==p.id&&!p.slide&&(p.tackleCooldown??0)<=0;}
   // Standing tackle (FC: Space). Front-on contact near the ball wins it; from behind risks a foul.
-  standTackle(){
-    const p=this.players[this.selected];if(!this.canTackle(p)||this.owner<0)return false;
+  standTackle(player=null){
+    const p=player??this.players[this.selected];if(!this.canTackle(p)||this.owner<0)return false;
     const victim=this.players[this.owner];if(victim.team===p.team)return false;
     const roll=(this.random??Math.random)(),d=distance(p,this.ball);
-    p.tackleAnim=.42;p.tackleCooldown=.8;p.heading=Math.atan2(this.ball.x-p.x,this.ball.z-p.z);this.charge=null;this.pending=null;
+    p.tackleAnim=.42;p.tackleCooldown=.8;p.heading=Math.atan2(this.ball.x-p.x,this.ball.z-p.z);if(!player){this.charge=null;this.pending=null;}
     const wild=hasTrait(p,'wildTackler');
     if(d>(wild?2.9:2.2)){p.vx*=.35;p.vz*=.35;return true;}
     const front=(p.x-victim.x)*Math.sin(victim.heading)+(p.z-victim.z)*Math.cos(victim.heading);
@@ -445,10 +446,10 @@ export class Match {
     if(p.team===0){this.selected=p.id;this.manualSelection=false;}return true;
   }
   // Sliding tackle (FC: A while defending). Commits to a line; ball first is clean, player first is a foul.
-  slideTackle(){
-    const p=this.players[this.selected];if(!this.canTackle(p))return false;
-    const input=this.input,strength=Math.hypot(input.x,input.z),toBall=Math.atan2(this.ball.x-p.x,this.ball.z-p.z),heading=strength>.15?Math.atan2(input.x,input.z):toBall;
-    p.slide={dx:Math.sin(heading),dz:Math.cos(heading),elapsed:0,duration:.55,recover:.6,hit:false};p.heading=heading;p.tackleCooldown=1.4;this.charge=null;this.pending=null;return true;
+  slideTackle(player=null){
+    const p=player??this.players[this.selected];if(!this.canTackle(p))return false;
+    const input=player?this.remote.input:this.input,strength=Math.hypot(input.x,input.z),toBall=Math.atan2(this.ball.x-p.x,this.ball.z-p.z),heading=strength>.15?Math.atan2(input.x,input.z):toBall;
+    p.slide={dx:Math.sin(heading),dz:Math.cos(heading),elapsed:0,duration:.55,recover:.6,hit:false};p.heading=heading;p.tackleCooldown=1.4;if(!player){this.charge=null;this.pending=null;}return true;
   }
   stepSlide(p,dt){
     const sl=p.slide;sl.elapsed+=dt;p.previousX=p.x;p.previousZ=p.z;
@@ -496,6 +497,53 @@ export class Match {
   // Skill moves (Shift + arrows, Q feints, Z + back drag-back, D/A then S fakes) for the human carrier.
   // Each move scripts the player's velocity and the ball's offset in the attacker's frame (f = toward goal,
   // l = attacker's left) and wrong-foots defenders close by.
+  // ---- Online guest (away team). The host runs the match; the guest's inputs arrive here. ----
+  setRemote(on){this.remote=on?{selected:-1,input:{x:0,z:0,sprint:false},pending:null,lockUntil:0}:null;}
+  remotePlayer(){return this.remote&&this.remote.selected>=0?this.players[this.remote.selected]:null;}
+  updateRemote(){
+    const r=this.remote;if(!r)return;const owner=this.owner>=0?this.players[this.owner]:null,current=this.remotePlayer();
+    if(owner?.team===1&&owner.index>0){r.selected=owner.id;}
+    else if(!current||current.sentOff||current.index===0||this.controlTime>r.lockUntil){
+      // Follow the play: the away outfielder nearest the ball, with a little stickiness so it does not flicker.
+      let best=null,bd=Infinity;for(const p of this.players){if(p.team!==1||p.index===0||p.sentOff)continue;const d=distance(p,this.ball)-(p.id===r.selected?1.5:0)-(p.id===this.receiver?6:0);if(d<bd){bd=d;best=p;}}
+      if(best&&best.id!==r.selected){r.selected=best.id;r.lockUntil=this.controlTime+.5;}
+    }
+    const k=r.pending;if(k){if(k.until<this.time)r.pending=null;else{const p=this.remotePlayer();if(p&&this.owner===p.id){r.pending=null;this.remoteStrike(p,k);}}}
+  }
+  remoteReady(){return this.remote&&this.running&&!this.paused&&!this.ended&&this.phase==='play'&&!this.restart&&this.goalWait<=0&&!this.kickoffState&&this.cardWait<=0;}
+  remoteStrike(p,k){if(k.type==='shoot'&&Math.abs(k.aim?.z??0)>.2)p.aiShotAimZ=k.aim.z*3.05;return this.strike(p,k.type,k.power,k.aim&&Math.hypot(k.aim.x,k.aim.z)>.15?k.aim:null,null,k.style??'auto');}
+  remoteKick(type,power=.4,aim=null,style='auto'){
+    if(!this.remoteReady()||!['pass','through','cross','shoot'].includes(type))return false;const p=this.remotePlayer();if(!p)return false;
+    const k={type,power:clamp(power,.12,1),aim,style,until:this.time+.42};
+    if(this.owner===p.id)return this.remoteStrike(p,k);
+    if(this.owner<0&&this.ball.y>(type==='shoot'?.6:1.1))return this.startHeader(p,type==='pass'?'pass':'shoot');
+    this.remote.pending=k;return true;
+  }
+  remoteTackle(slide=false){if(!this.remoteReady())return false;const p=this.remotePlayer();if(!p||this.owner<0||this.players[this.owner].team===1)return false;return slide?this.slideTackle(p):this.standTackle(p);}
+  remoteSwitch(){
+    if(!this.remote)return false;const r=this.remote,list=this.players.filter(p=>p.team===1&&p.index>0&&!p.sentOff&&p.id!==r.selected&&p.id!==this.owner).sort((a,b)=>distance(a,this.ball)-distance(b,this.ball));
+    if(!list.length)return false;r.selected=list[0].id;r.lockUntil=this.controlTime+1.6;return true;
+  }
+  remoteSkill(name,side=1){if(!this.remoteReady())return false;const p=this.remotePlayer();return Boolean(p)&&this.startSkill(name,side,p);}
+  // Snapshot for the guest: everything his screen needs to draw this instant.
+  netSnapshot(){
+    const r2=n=>Math.round(n*100)/100,keep=['x','z','vx','vz','heading','stride','kickAnim','jump','dive','diveHeight','tackleAnim','throwAnim','jostle','celebration','celebrationLift','stamina','trap'];
+    const players=this.players.map(p=>{const o={};for(const k of keep)o[k]=r2(p[k]??0);o.kickStyle=p.kickStyle;o.diveSide=p.diveSide;o.holdingBall=p.holdingBall;o.sentOff=p.sentOff;o.yellow=p.yellow;o.celebrationKind=p.celebrationKind;o.wall=p.wallUntil>this.controlTime||undefined;
+      if(p.slide)o.slide={...p.slide};if(p.aerial)o.aerial={...p.aerial};if(p.keeperAction)o.keeperAction={...p.keeperAction};if(p.skill)o.skill={name:p.skill.name,t:p.skill.t,dur:p.skill.dur};return o;});
+    const b=this.ball,rs=this.restart;
+    return {players,ball:{x:r2(b.x),y:r2(b.y),z:r2(b.z),vx:r2(b.vx),vy:r2(b.vy),vz:r2(b.vz)},owner:this.owner,selected:this.remote?.selected??-1,hostSelected:this.selected,score:this.score,half:this.half,remaining:this.remaining,time:this.time,controlTime:this.controlTime,addedTime:this.addedTime,phase:this.phase,goalWait:r2(this.goalWait),event:this.event,running:this.running,paused:this.paused,ended:this.ended,winner:this.winner,kickoff:Boolean(this.kickoffState),celebratingPlayer:this.celebratingPlayer,celebrationTeam:this.celebrationTeam,
+      notice:this.notice?{...this.notice}:null,highlight:this.highlight?{...this.highlight}:null,goalNet:this.goalNet?{...this.goalNet}:null,
+      restart:rs?{type:rs.type,team:rs.team,taker:rs.taker,x:rs.x,z:rs.z,wait:rs.wait,readyAfter:rs.readyAfter,aimZ:rs.aimZ,aim:rs.aim,keeperChoice:rs.keeperChoice,wallIds:rs.wallIds,view:rs.view?'spectate':null,manual:false}:null,
+      stats:this.stats,shootout:this.phase==='shootout'&&this.shootout?{turn:this.shootout.turn,stage:this.shootout.stage,score:this.shootout.score,attempts:this.shootout.attempts,kicks:this.shootout.kicks,winner:this.shootout.winner,wait:this.shootout.wait,aim:this.shootout.aim,kicker:this.shootout.kicker,committed:this.shootout.committed,keeperChoice:this.shootout.keeperChoice}:null};
+  }
+  // Guest side: the match object is a puppet that eases toward the host's latest snapshot instead of simulating.
+  applyNet(dt){
+    const n=this.netState;if(!n)return;const ease=1-Math.exp(-dt*20);
+    this.players.forEach((p,i)=>{const f=n.players[i],far=Math.hypot(f.x-p.x,f.z-p.z)>4;const x=far?f.x:p.x+(f.x-p.x)*ease,z=far?f.z:p.z+(f.z-p.z)*ease;Object.assign(p,f);p.x=x;p.z=z;p.slide=f.slide??null;p.aerial=f.aerial??null;p.keeperAction=f.keeperAction??null;p.skill=null;p.wallUntil=f.wall?Infinity:0;});
+    const b=this.ball,far=Math.hypot(n.ball.x-b.x,n.ball.z-b.z)>5;Object.assign(b,{x:far?n.ball.x:b.x+(n.ball.x-b.x)*ease,y:far?n.ball.y:b.y+(n.ball.y-b.y)*ease,z:far?n.ball.z:b.z+(n.ball.z-b.z)*ease,vx:n.ball.vx,vy:n.ball.vy,vz:n.ball.vz});
+    for(const k of ['owner','score','half','remaining','time','controlTime','addedTime','phase','goalWait','event','running','paused','ended','winner','celebratingPlayer','celebrationTeam','notice','highlight','goalNet','restart','stats'])this[k]=n[k];
+    this.selected=n.selected>=0?n.selected:this.selected;this.kickoffState=n.kickoff?(this.kickoffState??{remaining:1}):null;if(n.phase==='shootout'&&n.shootout)this.shootout=Object.assign(this.shootout??{},n.shootout);
+  }
   // True for a player steered by a person: the local user's selection, or the online guest's (see setRemote).
   isHumanControlled(p){return this.mode==='player'&&(p.team===0&&p.id===this.selected||this.remote&&p.id===this.remote.selected);}
   startSkill(name,side=1,player=null){
@@ -642,6 +690,7 @@ export class Match {
         if((runLead||type==='through')&&this.calledRun?.id===target.id)this.calledRun=null;
         if(type==='cross'){this.crossUntil=this.time+flight+1.2;this.crossTeam=p.team;this.crossPoint={x:tx,z:tz};target.runUntil=this.crossUntil;target.runTarget={x:tx,z:tz};}
         if(p.team===0&&this.mode==='player'){this.selected=target.id;this.manualSelection=false;}
+        if(this.remote&&p.team===1){this.remote.selected=target.id;this.remote.lockUntil=this.controlTime+1.2;}
       }else{
         const input=aim??this.input,len=Math.hypot(input.x,input.z)||1;
         const dx=Math.hypot(input.x,input.z)>.15?input.x/len:Math.sin(p.heading),dz=Math.hypot(input.x,input.z)>.15?input.z/len:Math.cos(p.heading);
@@ -986,7 +1035,7 @@ export class Match {
         if(p.sentOff||p.team===owner.team||p.index===0||p.decision>0||(p.fooledUntil??0)>this.controlTime||(owner.skillImmuneUntil??0)>this.controlTime)continue;
         const d=distance(p,this.ball),front=(p.x-owner.x)*Math.sin(owner.heading)+(p.z-owner.z)*Math.cos(owner.heading);
         // The human carrier only loses the ball to a clear front-on challenge, and not every time.
-        if(this.mode==='player'&&owner.team===0&&owner.id===this.selected){if(this.possessionTime<.9||d>1||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22*strengthOf(p)/strengthOf(owner)){p.stealCooldown=this.controlTime+1;continue;}}
+        if(this.isHumanControlled(owner)){if(this.possessionTime<.9||d>1||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22*strengthOf(p)/strengthOf(owner)){p.stealCooldown=this.controlTime+1;continue;}}
         // Strong carriers shield the ball: a weaker challenger often bounces off.
         else if(d<1.3&&front>-.05&&(p.stealCooldown??0)<=this.controlTime&&(this.random??Math.random)()<clamp((strengthOf(owner)-strengthOf(p))*1.1,0,.6)){p.stealCooldown=this.controlTime+.8;continue;}
         if((p.stealCooldown??0)>this.controlTime)continue;
@@ -1072,6 +1121,7 @@ export class Match {
     }
   }
   step(dt) {
+    if(this.netGuest){this.applyNet(dt);return;}
     if(!this.running||this.paused||this.ended)return;
     this.controlTime+=dt;
     if(this.notice){this.notice.remaining-=dt;if(this.notice.remaining<=0)this.notice=null;}
@@ -1163,10 +1213,16 @@ export class Match {
         else if(assisted){const target=this.tacticalTarget(p,null,pressers);this.movePlayer(p,target.x,target.z,distance(p,this.ball)<8?9.1:8.2,dt);}
         else this.movePlayer(p,p.x,p.z,0,dt,true);
         if(p.index===0&&p.holdingBall){const sign=this.attackSign(p.team);p.x=sign*clamp(p.x*sign,-51,-36.2);p.z=clamp(p.z,-18.5,18.5);}
+      }else if(this.remote&&p.id===this.remote.selected&&p.index!==0&&!this.restart){
+        // Online guest: his selected player on the away team moves by his stick, like the local player's does.
+        const input=this.remote.input,strength=Math.hypot(input.x,input.z),sprint=input.sprint&&p.stamina>2,speed=(sprint?10.2:7.2)*(this.owner===p.id?.96:1);
+        if(strength>.09)this.movePlayer(p,p.x+input.x*10,p.z+input.z*10,speed*Math.min(1,strength),dt,true);
+        else if(this.owner<0&&this.ball.y<4.5&&distance(p,this.ball)<6){const t=this.interceptTarget(p);this.movePlayer(p,t.x,t.z,9.1,dt);}
+        else this.movePlayer(p,p.x,p.z,0,dt,true);
       }else if(p.id===this.owner)this.moveCarrierAI(p,dt);
       else {const target=this.tacticalTarget(p,carrier,pressers);this.movePlayer(p,target.x,target.z,target.speed,dt);if(p.index===0)p.heading=turn(p.heading,Math.atan2(this.ball.x-p.x,this.ball.z-p.z),dt*14);}
     }
     for(const q of this.players)if(q.fooledUntil>this.controlTime&&!q.skill){q.x-=q.vx*dt*.45;q.z-=q.vz*dt*.45;}
-    this.recoverStamina(dt);this.resolveContacts(dt);if(this.restart)return;this.integrateBall(dt);this.updateAutoSelection();this.tryUserKick();
+    this.recoverStamina(dt);this.resolveContacts(dt);if(this.restart)return;this.integrateBall(dt);this.updateAutoSelection();this.tryUserKick();this.updateRemote();
   }
 }

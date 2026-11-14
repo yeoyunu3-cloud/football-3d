@@ -33,7 +33,7 @@
 <section class="club-hero"><div class="hero-copy"><span class="section-label">내 스쿼드</span><h2 id="home-squad-title">내 팀</h2><p id="club-summary">선수 11명</p><button id="edit-club-entry" class="hero-edit">선수·유니폼 편집 <span aria-hidden="true">↗</span></button></div><div id="home-player-preview" aria-label="내 선수 3D 미리보기"></div><div class="hero-player"><b id="home-player-name"></b><span id="home-player-role"></span></div></section>
 <div class="mode-grid"><button class="mode-card player-mode-card" id="choose-player"><span class="mode-icon" aria-hidden="true"><svg viewBox="0 0 64 48"><path d="M16 12h32c10 0 18 27 9 29-5 1-10-8-15-8H22c-5 0-10 9-15 8-9-2-1-29 9-29Z"/><path d="M18 19v13M12 25h13"/><circle cx="44" cy="22" r="2"/><circle cx="50" cy="28" r="2"/></svg></span><div><strong>직접 플레이</strong><span>선수 조작 · 8분 경기</span></div><span class="mode-arrow" aria-hidden="true">↗</span></button>
 <button class="mode-card manager-mode-card" id="choose-manager"><span class="mode-icon board-icon" aria-hidden="true"><svg viewBox="0 0 64 48"><rect x="6" y="5" width="52" height="38" rx="4"/><path d="M32 5v38"/><circle cx="32" cy="24" r="9"/><circle cx="18" cy="17" r="2"/><circle cx="46" cy="32" r="2"/></svg></span><div><strong>감독 모드</strong><span>전술 지시 · AI 경기 관전</span></div><span class="mode-arrow" aria-hidden="true">↗</span></button></div>
-<button class="online-mode-card" id="online-mode" disabled>온라인 1vs1 <span>준비 중</span></button></div>
+<button class="online-mode-card" id="online-mode">온라인 1vs1 <span>방 만들기 · 방 참가</span></button></div>
 <section id="pre-match" class="pre-match" hidden><button id="setup-back" class="back-button">← 모드 선택</button><div class="setup-heading"><h2 id="setup-title">일반 경기 준비</h2><span id="setup-description">선수 직접 조작</span></div>
 <div class="setup-grid"><div><div class="panel-heading"><h3>선발 배치</h3><button id="edit-lineup">선수 편집</button></div><div id="setup-lineup" class="setup-pitch" aria-label="경기 전 선발 배치"></div></div><div class="setup-options">
 <label>상대 스쿼드<select id="opponent-squad" aria-label="상대 스쿼드"><option value="default">기본 상대 팀</option></select></label><p id="opponent-summary" class="opponent-summary"></p>
@@ -57,5 +57,5 @@
 </form></section>
 <section class="formation-panel"><div class="panel-heading"><h2>포메이션</h2><select id="home-formation" aria-label="홈 포메이션"><option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option><option>3-5-2</option><option value="custom">자유 배치</option></select></div><div id="formation-pitch" aria-label="초기 선수 배치"><span class="pitch-goal"></span><span class="pitch-box"></span><span class="pitch-center"></span></div><p>드래그 / 방향키로 배치 · 공격 →</p></section>
 </div><section id="history-room" class="history-room" hidden><div class="history-heading"><h2>경기 기록</h2><button id="reset-history">경기 기록 초기화</button></div><p>이 브라우저의 최근 50경기</p><div id="history-list"></div></section></section>
-<script type="module" src="./game.js?v=20261114-traits3"></script>
+<script type="module" src="./game.js?v=20261114-online4"></script>
 </body></html>
