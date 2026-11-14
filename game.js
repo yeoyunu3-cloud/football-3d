@@ -1,6 +1,7 @@
 import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261112-20-release';
 import {fillEventRow} from './event-format.js?v=20261112-20-release';
-import {applyClub,defaultClub} from './roster.js?v=20261112-20-release';
+import {applyClub,defaultClub} from './roster.js?v=20261114-traits';
+import {ARCHETYPES,archetypeOf} from './player-traits.js?v=20261114-traits';
 import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261112-20-release';
 import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-field';
 import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-field';
@@ -11,10 +12,10 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261112-20-release';
 import {netOffset} from './goal-effects.js?v=20261114-field';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_PATTERNS,SKILL_HOLDS,relativeArrow,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261113-skills';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-norunpass';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-traits';
 import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261113-1';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261112-20-release';
-import { saveMatch } from './squads.js?v=20261112-20-release';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-traits';
+import { saveMatch } from './squads.js?v=20261114-traits';
 import { notify,textNode } from './ui.js?v=20261112-20-release';
 import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-field';
 import {officialStep,celebrationPose} from './presentation.js?v=20261112-20-release';
@@ -204,7 +205,7 @@ for(const id of ['player-preview','home-player-preview']){const host=$(id);host.
 $('preview-reset').onclick=()=>previewYaw=.12;
 const keys=new Set(),joy={x:0,y:0};let touchSprint=false,touchShotStyle='auto',renderSelected=-1,lastEvent='',lastClock='',lastScore='',accumulator=0;
 const exitDialog=$('exit-dialog');let exitPaused=false;
-function updateCard(){const id=match.mode==='manager'?match.owner:match.selected,p=match.players[id],card=document.querySelector('.player-card');card.hidden=match.owner<0||!p;if(!p){renderSelected=-1;return;}$('number').textContent=p.number??numbers[p.index];$('player-name').textContent=p.name??names[p.index];$('position').textContent=match.mode==='manager'?`${p.team===0?'홈':'원정'} · ${p.role}`:p.role;renderSelected=id;card.classList.toggle('away-possession',match.mode==='manager'&&p.team===1);}
+function updateCard(){const id=match.mode==='manager'?match.owner:match.selected,p=match.players[id],card=document.querySelector('.player-card');card.hidden=match.owner<0||!p;if(!p){renderSelected=-1;return;}$('number').textContent=p.number??numbers[p.index];$('player-name').textContent=p.name??names[p.index];const type=p.index===0?'':` · ${ARCHETYPES[archetypeOf(p)].label}`;$('position').textContent=(match.mode==='manager'?`${p.team===0?'홈':'원정'} · ${p.role}`:p.role)+type;renderSelected=id;card.classList.toggle('away-possession',match.mode==='manager'&&p.team===1);}
 function start(){if(homeOpen||match.running)return;match.start();}
 function switchPlayer(){start();if(match.paused||match.ended)return;match.switchPlayer();updateCard();}
 function reset(){const wasRunning=match.running;match.reset();if(wasRunning)match.start();$('result').classList.add('hidden');$('halftime').classList.add('hidden');releaseInputs();message('');syncHUD();}

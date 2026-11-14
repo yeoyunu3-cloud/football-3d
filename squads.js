@@ -1,4 +1,4 @@
-import {defaultClub,sanitizeClub,loadClub,saveClub} from './roster.js?v=20261112-20-release';
+import {defaultClub,sanitizeClub,loadClub,saveClub} from './roster.js?v=20261114-traits';
 export const SQUADS_KEY='soccer3d.squads.v2',HISTORY_KEY='soccer3d.matches.v1';
 const safeName=(s,f)=>String(s??'').trim().slice(0,30)||f;
 let serial=0;
