@@ -1,4 +1,4 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-tricks2';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runmenu';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const DRAWABLE_RESTARTS=new Set(['freeKick','indirect','corner','goalKick']);
 export function cleanKickPath(start,points){

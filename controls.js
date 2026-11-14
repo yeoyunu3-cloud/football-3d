@@ -1,5 +1,5 @@
 // motive: 피파 모티브 keyboard layout, following the official keyboard table (기본수비).
-// Attack: 방향키 이동, E 질주, S 패스, W 스루, A 로빙·크로스, D 슛, Q 노 터치 페인팅 (Q+E 큰 페인팅), Ctrl 퍼스트 터치.
+// Attack: 방향키 이동, E 질주, S 패스, W 스루, A 로빙·크로스, D 슛, Q 침투 메뉴 (4갈래 표시 → 1~4 선택), Ctrl 퍼스트 터치.
 // Defence: D 스탠딩 태클, A 슬라이딩 태클, S 선수 변경, Q 수비 도움 요청, Shift + 방향키 선수 바꾸기.
 // Taps: A A 땅볼 크로스, A A A 낮은 크로스, D D 깔아차기. Fakes: D 후 S 슛 페이크, A 후 S 패스 페이크.
 // Skills: keyboard skill guide (Shift + 방향키, Z + ↓ 드래그 백, C + Z 저글링, Q + Z 풋 페이크, ` 개구리 점프). Extra (not in the table): 1~4 각도 침투, F + D 파워슛.

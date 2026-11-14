@@ -1,25 +1,25 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-tricks2';
-import {fillEventRow} from './event-format.js?v=20261114-tricks2';
-import {applyClub,defaultClub} from './roster.js?v=20261114-tricks2';
-import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-tricks2';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-tricks2';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-tricks2';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-tricks2';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-tricks2';
-import {paintKit} from './kit-art.js?v=20261114-tricks2';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-tricks2';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-tricks2';
-import {netOffset} from './goal-effects.js?v=20261114-tricks2';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-tricks2';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-runmenu';
+import {fillEventRow} from './event-format.js?v=20261114-runmenu';
+import {applyClub,defaultClub} from './roster.js?v=20261114-runmenu';
+import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-runmenu';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-runmenu';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-runmenu';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-runmenu';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-runmenu';
+import {paintKit} from './kit-art.js?v=20261114-runmenu';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-runmenu';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-runmenu';
+import {netOffset} from './goal-effects.js?v=20261114-runmenu';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-runmenu';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-tricks2';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-tricks2';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-tricks2';
-import { saveMatch } from './squads.js?v=20261114-tricks2';
-import { notify,textNode } from './ui.js?v=20261114-tricks2';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-tricks2';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-tricks2';
-import { keeperPose } from './keeper.js?v=20261114-tricks2';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-runmenu';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-runmenu';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-runmenu';
+import { saveMatch } from './squads.js?v=20261114-runmenu';
+import { notify,textNode } from './ui.js?v=20261114-runmenu';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-runmenu';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-runmenu';
+import { keeperPose } from './keeper.js?v=20261114-runmenu';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -29,7 +29,7 @@ for(const [key,options] of Object.entries(TACTIC_OPTIONS))for(const [host,prefix
 $('tactics-panel').append(document.querySelector('.match-stats'));
 let controlPreset=DEFAULT_PRESET;try{controlPreset=validPreset(localStorage.getItem('soccer-controls'));}catch{}
 const controls=()=>CONTROL_PRESETS[controlPreset];
-function showControls(){const c=controls();const entries=[[c.move,'이동'],[keyLabel(c.sprint),'달리기'],[keyLabel(c.switch),'선수 전환'],[keyLabel(c.pass),'패스'],[keyLabel(c.through),'스루패스'],[keyLabel(c.cross),'크로스'],[keyLabel(c.shoot),'슛·헤딩'],['Esc','경기 메뉴']];for(const host of [$('player-setup'),document.querySelector('.controls-hint')]){host.replaceChildren(...entries.map(([key,label])=>{const span=document.createElement('span'),kbd=document.createElement('kbd');kbd.textContent=key;span.append(kbd,` ${label}`);return span;}));{const extra=document.createElement('small');extra.className='shot-controls';extra.textContent=c.shotMods.map(([key,style])=>`${keyLabel(key)} + ${keyLabel(c.shoot)} ${SHOT_LABELS[style]}`).join(' · ')+(c.defendSwitch?` · ${keyLabel(c.shoot)}${keyLabel(c.shoot)} 깔아차기 · 수비: ${keyLabel(c.tackle)} 스탠딩 태클 · ${keyLabel(c.slideTackle)} 슬라이딩 · ${keyLabel(c.defendSwitch)} 선수 변경 · ${keyLabel(c.helpDefend)} 수비 도움 요청 · Shift + 방향키 선수 바꾸기 · 패스: Q + ${keyLabel(c.pass)} 침투 패스 · C + ${keyLabel(c.pass)} 플레어 패스 · Z + ${keyLabel(c.pass)} 드라이브 땅볼 · Q + ${keyLabel(c.through)} 로빙 스루 · Z + ${keyLabel(c.through)} 침투 스루 · 크로스: Q + ${keyLabel(c.cross)} 얼리 · ${keyLabel(c.cross)}${keyLabel(c.cross)} 땅볼 · ${keyLabel(c.cross)}${keyLabel(c.cross)}${keyLabel(c.cross)} 낮은 · Z + ${keyLabel(c.cross)} 바운싱 로빙 · 개인기: ${keyLabel(c.feint)} 페인팅 · Shift + 방향키 조합 · Z + ← 드래그 백 · ${keyLabel(c.shoot)} 후 ${keyLabel(c.fakeWith)} 슛 페이크 · ${keyLabel(c.cross)} 후 ${keyLabel(c.fakeWith)} 패스 페이크 · ${keyLabel(c.knockOn)} 퍼스트 터치 · ${Object.keys(c.runAngles).join('~').replace(/~.*~/,'~')} 각도 침투 · ${c.cancel.map(keyLabel).join(' + ')} 취소 · GK ${keyLabel(c.keeperDrop)} 공 놓기`:'');host.append(extra);}}}
+function showControls(){const c=controls();const entries=[[c.move,'이동'],[keyLabel(c.sprint),'달리기'],[keyLabel(c.switch),'선수 전환'],[keyLabel(c.pass),'패스'],[keyLabel(c.through),'스루패스'],[keyLabel(c.cross),'크로스'],[keyLabel(c.shoot),'슛·헤딩'],['Esc','경기 메뉴']];for(const host of [$('player-setup'),document.querySelector('.controls-hint')]){host.replaceChildren(...entries.map(([key,label])=>{const span=document.createElement('span'),kbd=document.createElement('kbd');kbd.textContent=key;span.append(kbd,` ${label}`);return span;}));{const extra=document.createElement('small');extra.className='shot-controls';extra.textContent=c.shotMods.map(([key,style])=>`${keyLabel(key)} + ${keyLabel(c.shoot)} ${SHOT_LABELS[style]}`).join(' · ')+(c.defendSwitch?` · ${keyLabel(c.shoot)}${keyLabel(c.shoot)} 깔아차기 · 수비: ${keyLabel(c.tackle)} 스탠딩 태클 · ${keyLabel(c.slideTackle)} 슬라이딩 · ${keyLabel(c.defendSwitch)} 선수 변경 · ${keyLabel(c.helpDefend)} 수비 도움 요청 · Shift + 방향키 선수 바꾸기 · 패스: Q + ${keyLabel(c.pass)} 침투 패스 · C + ${keyLabel(c.pass)} 플레어 패스 · Z + ${keyLabel(c.pass)} 드라이브 땅볼 · Q + ${keyLabel(c.through)} 로빙 스루 · Z + ${keyLabel(c.through)} 침투 스루 · 크로스: Q + ${keyLabel(c.cross)} 얼리 · ${keyLabel(c.cross)}${keyLabel(c.cross)} 땅볼 · ${keyLabel(c.cross)}${keyLabel(c.cross)}${keyLabel(c.cross)} 낮은 · Z + ${keyLabel(c.cross)} 바운싱 로빙 · 침투: ${keyLabel(c.feint)} 누르면 4갈래 표시 → 1~4 선택 · 개인기: Shift + 방향키 조합 · Z + ↓ 드래그 백 · ${keyLabel(c.shoot)} 후 ${keyLabel(c.fakeWith)} 슛 페이크 · ${keyLabel(c.cross)} 후 ${keyLabel(c.fakeWith)} 패스 페이크 · ${keyLabel(c.knockOn)} 퍼스트 터치 · ${Object.keys(c.runAngles).join('~').replace(/~.*~/,'~')} 각도 침투 · ${c.cancel.map(keyLabel).join(' + ')} 취소 · GK ${keyLabel(c.keeperDrop)} 공 놓기`:'');host.append(extra);}}}
 $('control-preset').value=controlPreset;$('control-preset').onchange=()=>{releaseInputs();controlPreset=validPreset($('control-preset').value);try{localStorage.setItem('soccer-controls',controlPreset);}catch{notify('설정 저장 실패','이번 실행에는 적용되지만 다시 열면 초기화될 수 있습니다.');}showControls();};showControls();
 
 let renderer;
@@ -183,6 +183,20 @@ runHeadShape.moveTo(-.75,0);runHeadShape.lineTo(.75,0);runHeadShape.lineTo(0,-1.
 const runHead=new THREE.Mesh(new THREE.ShapeGeometry(runHeadShape),runArrowMaterial);runShaft.rotation.x=runHead.rotation.x=-Math.PI/2;runArrow.add(runShaft,runHead);runArrow.visible=false;scene.add(runArrow);
 // A short copy at the passer's feet, so the run direction is visible even when the runner is off screen.
 const runCue=runArrow.clone();runCue.scale.setScalar(.8);runCue.children[0].scale.y=2.2;runCue.children[0].position.z=1.1;runCue.children[1].position.z=2.2;scene.add(runCue);
+// Q run menu: four numbered branches fanning out from the runner (1~4 = 45° · 80° · 135° · 170°).
+const runMenuMaterial=new THREE.MeshBasicMaterial({color:0xffe27a,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide});
+const runMenu=new THREE.Group();runMenu.visible=false;scene.add(runMenu);
+const runBranches=Object.entries(CONTROL_PRESETS.motive.runAngles).map(([label,angle])=>{
+  const arrow=runArrow.clone();arrow.visible=true;arrow.traverse(o=>{if(o.isMesh)o.material=runMenuMaterial;});const shaft=6.2;arrow.children[0].scale.y=shaft;arrow.children[0].position.z=shaft/2;arrow.children[1].position.z=shaft;
+  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='#16202b';g.beginPath();g.arc(64,64,54,0,Math.PI*2);g.fill();g.lineWidth=8;g.strokeStyle='#ffe27a';g.stroke();g.fillStyle='#ffe27a';g.font='bold 78px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,64,70);
+  const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));tag.scale.set(2.3,2.3,1);tag.renderOrder=20;
+  runMenu.add(arrow,tag);return {angle,arrow,tag};});
+function updateRunMenu(){
+  const menu=match.runMenu,r=menu&&menu.until>match.controlTime&&match.owner>=0&&match.players[match.owner].team===0&&!match.charge?match.players[menu.id]:null;
+  runMenu.visible=Boolean(r)&&!homeOpen&&match.mode==='player';if(!runMenu.visible)return;
+  const s=match.attackSign(0);runMenu.position.set(r.x,.12,r.z);runMenuMaterial.opacity=.9*Math.min(1,(menu.until-match.controlTime)/.4);
+  for(const b of runBranches){const a=b.angle*Math.PI/180,dx=s*Math.sin(a),dz=-s*Math.cos(a);b.arrow.rotation.y=Math.atan2(dx,dz);b.tag.position.set(dx*9.2,1.4,dz*9.2);b.tag.material.opacity=runMenuMaterial.opacity/.9;}
+}
 function updateRunArrow(){
   const run=match.calledRun,r=run&&run.until>match.time?match.players[run.id]:null,t=r?.runUntil>match.time?r.runTarget:null;
   const dx=t?t.x-r.x:0,dz=t?t.z-r.z:0,len=Math.hypot(dx,dz),carrier=match.owner>=0?match.players[match.owner]:null;
@@ -326,7 +340,7 @@ window.addEventListener('keydown',e=>{
     if(shotModKeys(controlPreset).includes(key)&&match.charge?.type==='shoot'){match.modifyShotStyle(shotStyleFor(keys,'auto',controlPreset));sampleInput();return;}
     // Read directional input before a same-frame pass or shot.
     sampleInput();
-    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'&&keys.has(controls().skill)){start();}else if(action==='feint'){start();const side=Math.sign(-match.input.z*match.attackSign(0))||1;match.startSkill(keys.has(controls().sprint)?'bigFeint':'feint',side);}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
+    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'){start();if(!keys.has(controls().skill))match.openRunMenu();}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
   }
 });
 window.addEventListener('keyup',e=>{const key=inputKey(e),action=actionFor(key,controlPreset,{...actionContext(),defending:false,attacking:false});keys.delete(key);if(skillHold?.pendingTap&&!skillHold.fired&&skillArrow(key)===skillHold.dir){skillHold.fired=true;fireSkill(skillHold.pendingTap);}if(suppressKeyup.delete(key))return;
@@ -485,7 +499,7 @@ function frame(now){
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
   if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt/FIELD_SCALE*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
-  updateBallSound(dt);updateRunArrow();updateSkillHold();
+  updateBallSound(dt);updateRunArrow();updateRunMenu();updateSkillHold();
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
     const relocated=visual.lastX===undefined||Math.hypot(p.x-visual.lastX,p.z-visual.lastZ)>4;visual.renderHeading=relocated?p.heading:followHeading(visual.renderHeading,p.heading,match.paused?0:dt);visual.lastX=p.x;visual.lastZ=p.z;
