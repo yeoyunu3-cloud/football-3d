@@ -1,26 +1,26 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-fix3';
-import {fillEventRow} from './event-format.js?v=20261114-fix3';
-import {createOnline,validRoomName} from './online.js?v=20261114-fix3';
-import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-fix3';
-import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-fix3';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-fix3';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-fix3';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-fix3';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-fix3';
-import {paintKit} from './kit-art.js?v=20261114-fix3';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-fix3';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-fix3';
-import {netOffset} from './goal-effects.js?v=20261114-fix3';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-fix3';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-runs';
+import {fillEventRow} from './event-format.js?v=20261114-runs';
+import {createOnline,validRoomName} from './online.js?v=20261114-runs';
+import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-runs';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-runs';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-runs';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-runs';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-runs';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-runs';
+import {paintKit} from './kit-art.js?v=20261114-runs';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-runs';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-runs';
+import {netOffset} from './goal-effects.js?v=20261114-runs';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-runs';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-fix3';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-fix3';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-fix3';
-import { saveMatch } from './squads.js?v=20261114-fix3';
-import { notify,textNode } from './ui.js?v=20261114-fix3';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-fix3';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-fix3';
-import { keeperPose } from './keeper.js?v=20261114-fix3';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-runs';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-runs';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-runs';
+import { saveMatch } from './squads.js?v=20261114-runs';
+import { notify,textNode } from './ui.js?v=20261114-runs';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-runs';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-runs';
+import { keeperPose } from './keeper.js?v=20261114-runs';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -339,6 +339,10 @@ window.addEventListener('keydown',e=>{
   if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','shift','q',' ','e','r','x','z','c','f','control','1','2','3','4','`'].includes(key)){
     e.preventDefault();keys.add(key);
     if(!e.repeat&&isCancelCombo(keys,controlPreset)&&(match.charge||match.pending||match.restart?.queuedKick)){match.cancelKick();return;}
+    // E + C with nothing to cancel on the ball: call off every run sent with Q / 1~4.
+    if(!e.repeat&&isCancelCombo(keys,controlPreset)&&match.cancelRuns?.())return;
+    // Z tap on the ball (no other key): the nearest teammate comes short for a pass.
+    if(!e.repeat&&key==='z'&&!match.charge&&keys.size===1&&actionContext().attacking){match.callSupport?.();}
     if(!e.repeat&&key===controls().keeperDrop&&match.dropKeeperBall())return;
     if(!e.repeat&&tapRelease?.key===key){const {type,taps=1}=tapRelease,triple=controls().tripleTap?.[type];clearTapRelease();suppressKeyup.add(key);
       // Second tap sets the double-tap style; if a triple-tap style exists, wait once more for a third tap.

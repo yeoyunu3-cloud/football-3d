@@ -1,4 +1,4 @@
-import {hasTrait} from './player-traits.js?v=20261114-fix3';
+import {hasTrait} from './player-traits.js?v=20261114-runs';
 // Off-ball positioning built from real football principles rather than ball-chasing:
 //  - Out of possession the team defends as one compact block (flat back line, ~25 m deep),
 //    sliding across with the ball; only one player presses, and only on a pressing trigger.
@@ -117,7 +117,7 @@ export function updateAutoRuns(m,carrier){
   if(m.time<m.autoRunAt[team]||carrier.x*s<-15)return;
   const facing=Math.sin(carrier.heading)*s,pressure=Math.min(...m.players.filter(o=>o.team!==team&&!o.sentOff).map(o=>dist(o,carrier)));
   if(facing<.3||pressure<4.5)return;
-  if(m.calledRun?.until>m.time&&team===0)return;
+  if(team===0&&m.players.some(q=>q.team===0&&(q.calledUntil??0)>m.time))return;
   const off=offsideU(m,team,s,m.ball.x*s);
   const candidates=m.players.filter(r=>r.team===team&&!r.sentOff&&r.id!==carrier.id&&(['ST','LW','RW','AM'].includes(r.role)||hasTrait(r,'lineBreaker'))&&!(r.runUntil>m.time)&&r.x*s<=off+.1&&off-r.x*s<6);
   let best=null,space=-Infinity;
@@ -145,7 +145,7 @@ function spread(m,p,t){
 export function teamShapeTarget(m,p,carrier,primary){
   if(p.index===0||p.sentOff)return null;
   if(m.crossUntil>m.time&&m.crossTeam===p.team&&['ST','AM','LW','RW'].includes(p.role))return null;
-  if(m.calledRun?.id===p.id&&m.calledRun.until>m.time)return null;
+  if((p.calledUntil??0)>m.time)return null;
   if(carrier){
     if(carrier.team===p.team){
       if(p.runUntil>m.time&&p.runTarget)return {x:p.runTarget.x,z:p.runTarget.z,speed:8.8};

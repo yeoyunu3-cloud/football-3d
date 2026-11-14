@@ -21,7 +21,7 @@ function loadPeer(){
   return peerScript;
 }
 
-import {createLobby} from './lobby.js?v=20261114-fix3';
+import {createLobby} from './lobby.js?v=20261114-runs';
 export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onLobbyState}){
   const lobby=createLobby({onRooms,onState:onLobbyState});
   const listed=()=>state.room&&!isLocalRoom(state.room);
@@ -110,7 +110,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
     match.switchToward=()=>{send({t:'sw'});return true;};
     match.startSkill=(name,side=1)=>{send({t:'sk',name,side});return true;};
     match.fakeKick=variant=>{if(!match.charge)return false;match.charge=null;send({t:'sk',name:variant??'fakeCut',side:-match.input.z*match.attackSign(1)>=0?1:-1});return true;};
-    for(const name of ['callRun','openRunMenu','knockOn','callDefensiveHelp','wallJump','dropKeeperBall','skipCelebration','start','togglePause'])match[name]=()=>false;
+    for(const name of ['callRun','openRunMenu','cancelRuns','callSupport','knockOn','callDefensiveHelp','wallJump','dropKeeperBall','skipCelebration','start','togglePause'])match[name]=()=>false;
   }
   return {createRoom,joinRoom,close,async openLobby(){try{await loadPeer();lobby.start();}catch(error){onLobbyState?.('unavailable');}},refreshLobby(){lobby.refresh();},get role(){return state.role;},get room(){return state.room;},get active(){return state.role==='host'||state.role==='guest';},get isGuest(){return state.role==='guest';}};
 }
