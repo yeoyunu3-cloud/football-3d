@@ -344,8 +344,8 @@ function cameraUpdate(dt,immediate=false){
   cameraTarget.copy(focus);if(match.mode==='player'&&!r&&match.goalWait<=0)cameraTarget.y=1;
   const narrow=camera.aspect<.8;
   const direct=match.mode==='player'&&!r;
-  // Close broadcast view in player mode (players read large, like a TV match camera).
-  cameraPosition.set(focus.x,narrow?30:direct?15:43,focus.z+(narrow?30:direct?21:25));
+  // Mid-height broadcast view in player mode: about half the pitch width in frame, ~30° down.
+  cameraPosition.set(focus.x,narrow?36:direct?23:43,focus.z+(narrow?38:direct?33:25));
   if(match.goalWait>0)cameraPosition.set(focus.x,28,focus.z+20);
   camera.position.lerp(cameraPosition,immediate?1:1-Math.exp(-dt*6));camera.lookAt(cameraTarget);
 }
