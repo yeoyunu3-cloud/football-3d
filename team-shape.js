@@ -1,3 +1,4 @@
+import {hasTrait} from './player-traits.js?v=20261114-traits3';
 // Off-ball positioning built from real football principles rather than ball-chasing:
 //  - Out of possession the team defends as one compact block (flat back line, ~25 m deep),
 //    sliding across with the ball; only one player presses, and only on a pressing trigger.
@@ -118,11 +119,12 @@ export function updateAutoRuns(m,carrier){
   if(facing<.3||pressure<4.5)return;
   if(m.calledRun?.until>m.time&&team===0)return;
   const off=offsideU(m,team,s,m.ball.x*s);
-  const candidates=m.players.filter(r=>r.team===team&&!r.sentOff&&r.id!==carrier.id&&['ST','LW','RW','AM'].includes(r.role)&&!(r.runUntil>m.time)&&r.x*s<=off+.1&&off-r.x*s<6);
+  const candidates=m.players.filter(r=>r.team===team&&!r.sentOff&&r.id!==carrier.id&&(['ST','LW','RW','AM'].includes(r.role)||hasTrait(r,'lineBreaker'))&&!(r.runUntil>m.time)&&r.x*s<=off+.1&&off-r.x*s<6);
   let best=null,space=-Infinity;
-  for(const r of candidates){const target={x:s*clamp(off+9,0,47),z:clamp(r.z,-24,24)};const free=Math.min(...m.players.filter(o=>o.team!==team&&!o.sentOff&&o.index>0).map(o=>dist(o,target)));if(free>space){space=free;best={r,target};}}
+  for(const r of candidates){const target={x:s*clamp(off+9,0,47),z:clamp(r.z,-24,24)};const free=Math.min(...m.players.filter(o=>o.team!==team&&!o.sentOff&&o.index>0).map(o=>dist(o,target)));const rank=free+(hasTrait(r,'lineBreaker')?3:0);if(rank>space){space=rank;best={r,target};}}
   const human=m.mode==='player'&&team===0;
-  m.autoRunAt[team]=m.time+(human?5:3.2)+((m.random??Math.random)())*2;
+  // 라인 브레이커 keeps looking for the next run sooner.
+  m.autoRunAt[team]=m.time+((human?5:3.2)+((m.random??Math.random)())*2)*(best&&hasTrait(best.r,'lineBreaker')?.55:1);
   if(!best||space<4)return;
   best.r.runTarget=best.target;best.r.runUntil=m.time+2.2;
 }

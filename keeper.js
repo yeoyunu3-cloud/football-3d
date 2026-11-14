@@ -1,6 +1,7 @@
-import {FIELD_SCALE} from './visual-scale.js?v=20261114-corner3';
-import {distributionPose} from './keeper-control.js?v=20261114-corner3';
-import {forecastBall} from './ball-flight.js?v=20261114-corner3';
+import {FIELD_SCALE} from './visual-scale.js?v=20261114-traits3';
+import {distributionPose} from './keeper-control.js?v=20261114-traits3';
+import {hasTrait} from './player-traits.js?v=20261114-traits3';
+import {forecastBall} from './ball-flight.js?v=20261114-traits3';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const length=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const predictBall=forecastBall;
@@ -11,10 +12,10 @@ export function predictPlane(ball,x){
   if(ball.shotFlight){for(let i=0;i<3;i++){const hit=predictBall(ball,t);t=clamp(t+(x-hit.x)/ball.vx,0,2);}}
   return {...predictBall(ball,t),t};
 }
-export function chooseKeeperAction(p,ball,{incoming=true,cross=false,pressure=20}={}){
+export function chooseKeeperAction(p,ball,{incoming=true,cross=false,pressure=20,reach=1}={}){
   let hit=predictPlane(ball,p.x);
   if(cross){
-    for(let t=.18;t<1.05;t+=.06){const point=predictBall(ball,t);if(point.y>1.35&&point.y<3.2&&Math.abs(point.x)>36&&length(p,point)<6.6*t+1.1){hit={...point,t};break;}}
+    for(let t=.18;t<1.05;t+=.06){const point=predictBall(ball,t);if(point.y>1.35&&point.y<3.2&&Math.abs(point.x)>36&&length(p,point)<(6.6*t+1.1)*reach){hit={...point,t};break;}}
   }
   // A near-post shot can already be goal-side of the keeper's standing plane.
   if((!hit||Math.abs(hit.z)>(cross?16:6)||hit.y>3.35)&&incoming){for(let t=.025;t<=.45;t+=.025){const point=predictBall(ball,t);if(Math.abs(point.x)>52.85)break;if(point.y<3.3&&length(p,point)<1.35+5.5*t){hit={...point,t};break;}}}
@@ -86,8 +87,9 @@ export function updateKeeper(match,p,dt){
   // Smother: an opponent dribbling at the keeper inside the box gets a dive at his feet.
   if(match.owner>=0&&p.reaction<=0&&p.decision<=0&&p.recover<=0&&!p.holdingBall&&!(match.mode==='player'&&p.team===0&&match.selected===p.id)){
     const o=match.players[match.owner],ball=match.ball,sign=match.attackSign(p.team),d=length(p,ball);
-    if(o.team!==p.team&&o.index>0&&ball.x*sign<-36.5&&Math.abs(ball.z)<19.5&&d<4.4&&d>1.3){
-      const t=.3,target={x:ball.x+o.vx*t,y:.3,z:ball.z+o.vz*t,t},closing=length(p,target)<d+.4;
+    const quick=hasTrait(p,'gkQuick');
+    if(o.team!==p.team&&o.index>0&&ball.x*sign<-36.5&&Math.abs(ball.z)<19.5&&d<(quick?5.8:4.4)&&d>1.3){
+      const t=quick?.34:.3,target={x:ball.x+o.vx*t,y:.3,z:ball.z+o.vz*t,t},closing=length(p,target)<d+.4;
       if(closing){const side=target.z-p.z>=0?1:-1;p.keeperAction={kind:'lowDive',duration:.95,elapsed:0,side,target,origin:{x:p.x,z:p.z},contacted:false,catchable:true,contactAt:t,launchAt:.03,smother:true};p.heading=Math.atan2(ball.x-p.x,ball.z-p.z);p.diveSide=side;p.diveHeight=.35;p.decision=1.15;}
     }
   }
@@ -100,9 +102,10 @@ export function updateKeeper(match,p,dt){
   let incoming=b.vx*s<-.5;
   // A cross may travel across the six-yard area with little forward velocity.
   const candidateBall=b;
-  if(cross&&!incoming&&Math.abs(b.x)>40&&length(p,b)<11){const future=predictBall(b,.4);if(length(p,future)<5)incoming=true;}
+  const aerial=hasTrait(p,'gkAerial');
+  if(cross&&!incoming&&Math.abs(b.x)>40&&length(p,b)<(aerial?15:11)){const future=predictBall(b,.4);if(length(p,future)<(aerial?7.5:5))incoming=true;}
   const pressure=Math.min(...match.players.filter(o=>o.team!==p.team&&!o.sentOff).map(o=>length(o,p)));
-  const action=chooseKeeperAction(p,candidateBall,{incoming,cross,pressure});
+  const action=chooseKeeperAction(p,candidateBall,{incoming,cross,pressure:cross&&aerial?Math.max(pressure,5):pressure,reach:cross&&aerial?1.35:1});
   if(action){p.keeperAction=action;p.heading=Math.atan2(b.x-p.x,b.z-p.z);p.diveSide=action.side;p.diveHeight=clamp(action.target.y,.35,2.4);p.decision=action.duration+.16;}
 }
 export function sweepDistance3(point,a,b){

@@ -50,11 +50,12 @@
 <label>이름<input id="edit-name" maxlength="20" autocomplete="off" required></label>
 <p id="number-error" class="field-error" role="alert" hidden></p><div class="field-pair"><label>등번호<input id="edit-number" type="number" min="1" max="99" step="1" required aria-describedby="number-error"></label><label>포지션<select id="edit-role"><option>GK</option><option>LB</option><option>CB</option><option>RB</option><option>DM</option><option>CM</option><option>AM</option><option>LM</option><option>RM</option><option>LW</option><option>RW</option><option>ST</option></select></label></div>
 <label>선수 유형<select id="edit-archetype"><option value="balanced">밸런스형</option><option value="target">타깃형</option><option value="speedster">스피드형</option><option value="shooter">중거리형</option><option value="stopper">파이터형</option><option value="trickster">트릭스터</option><option value="playmaker">플레이메이커</option></select><small id="edit-archetype-desc" class="field-hint"></small></label>
+<div class="field-pair"><label>신특 1<select id="edit-special-0"></select></label><label>신특 2<select id="edit-special-1"></select></label></div><small id="edit-special-desc" class="field-hint"></small>
 <label for="edit-height">키 <output id="edit-height-value"></output><input id="edit-height" type="range" min="150" max="210" step="1"></label>
 <label for="edit-weight">몸무게 <output id="edit-weight-value"></output><input id="edit-weight" type="range" min="45" max="120" step="1"></label>
 <div class="field-pair"><label>피부색<input id="edit-skin" type="color"></label><label>머리색<input id="edit-hair" type="color"></label></div>
 </form></section>
 <section class="formation-panel"><div class="panel-heading"><h2>포메이션</h2><select id="home-formation" aria-label="홈 포메이션"><option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option><option>3-5-2</option><option value="custom">자유 배치</option></select></div><div id="formation-pitch" aria-label="초기 선수 배치"><span class="pitch-goal"></span><span class="pitch-box"></span><span class="pitch-center"></span></div><p>드래그 / 방향키로 배치 · 공격 →</p></section>
 </div><section id="history-room" class="history-room" hidden><div class="history-heading"><h2>경기 기록</h2><button id="reset-history">경기 기록 초기화</button></div><p>이 브라우저의 최근 50경기</p><div id="history-list"></div></section></section>
-<script type="module" src="./game.js?v=20261114-corner3"></script>
+<script type="module" src="./game.js?v=20261114-traits3"></script>
 </body></html>

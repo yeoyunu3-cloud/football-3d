@@ -1,25 +1,25 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-corner3';
-import {fillEventRow} from './event-format.js?v=20261114-corner3';
-import {applyClub,defaultClub} from './roster.js?v=20261114-corner3';
-import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-corner3';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-corner3';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-corner3';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-corner3';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-corner3';
-import {paintKit} from './kit-art.js?v=20261114-corner3';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-corner3';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-corner3';
-import {netOffset} from './goal-effects.js?v=20261114-corner3';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-corner3';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-traits3';
+import {fillEventRow} from './event-format.js?v=20261114-traits3';
+import {applyClub,defaultClub} from './roster.js?v=20261114-traits3';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-traits3';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-traits3';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-traits3';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-traits3';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-traits3';
+import {paintKit} from './kit-art.js?v=20261114-traits3';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-traits3';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-traits3';
+import {netOffset} from './goal-effects.js?v=20261114-traits3';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-traits3';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-corner3';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-corner3';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-corner3';
-import { saveMatch } from './squads.js?v=20261114-corner3';
-import { notify,textNode } from './ui.js?v=20261114-corner3';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-corner3';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-corner3';
-import { keeperPose } from './keeper.js?v=20261114-corner3';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-traits3';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-traits3';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-traits3';
+import { saveMatch } from './squads.js?v=20261114-traits3';
+import { notify,textNode } from './ui.js?v=20261114-traits3';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-traits3';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-traits3';
+import { keeperPose } from './keeper.js?v=20261114-traits3';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -231,7 +231,7 @@ for(const id of ['player-preview','home-player-preview']){const host=$(id);host.
 $('preview-reset').onclick=()=>previewYaw=.12;
 const keys=new Set(),joy={x:0,y:0};let touchSprint=false,touchShotStyle='auto',renderSelected=-1,lastEvent='',lastClock='',lastScore='',accumulator=0;
 const exitDialog=$('exit-dialog');let exitPaused=false;
-function updateCard(){const id=match.mode==='manager'?match.owner:match.selected,p=match.players[id],card=document.querySelector('.player-card');card.hidden=match.owner<0||!p;if(!p){renderSelected=-1;return;}$('number').textContent=p.number??numbers[p.index];$('player-name').textContent=p.name??names[p.index];const type=p.index===0?'':` · ${ARCHETYPES[archetypeOf(p)].label}`;$('position').textContent=(match.mode==='manager'?`${p.team===0?'홈':'원정'} · ${p.role}`:p.role)+type;renderSelected=id;card.classList.toggle('away-possession',match.mode==='manager'&&p.team===1);}
+function updateCard(){const id=match.mode==='manager'?match.owner:match.selected,p=match.players[id],card=document.querySelector('.player-card');card.hidden=match.owner<0||!p;if(!p){renderSelected=-1;return;}$('number').textContent=p.number??numbers[p.index];$('player-name').textContent=p.name??names[p.index];const specials=specialsOf(p).map(id=>SPECIAL_TRAITS[id]?.label).filter(Boolean).join(' · '),type=(p.index===0?'':` · ${ARCHETYPES[archetypeOf(p)].label}`)+(specials?` · ${specials}`:'');$('position').textContent=(match.mode==='manager'?`${p.team===0?'홈':'원정'} · ${p.role}`:p.role)+type;renderSelected=id;card.classList.toggle('away-possession',match.mode==='manager'&&p.team===1);}
 function start(){if(homeOpen||match.running)return;match.start();}
 function switchPlayer(){start();if(match.paused||match.ended)return;match.switchPlayer();updateCard();}
 function reset(){const wasRunning=match.running;match.reset();if(wasRunning)match.start();$('result').classList.add('hidden');$('halftime').classList.add('hidden');releaseInputs();message('');syncHUD();}
@@ -539,7 +539,16 @@ function frame(now){
       if(!visual.realistic)g.position.y+=pose.bob;g.rotation.x=visual.realistic?Math.min(.07,speed*.007):pose.lean;g.rotation.z=pose.roll+(p.jostle??0)*.12+Math.sin((p.feint??0)*20)*Math.min(.18,p.feint??0);visual.body.rotation.y=pose.twist;
       visual.legs.forEach((leg,i)=>{leg.rotation.x=dampJoint(leg.rotation.x,pose.hips[i],dt);visual.knees[i].rotation.x=pose.knees[i];visual.elbows[i].rotation.x=pose.elbows[i];});
       const swing=Math.sin(p.stride)*Math.min(.65,speed*.08);
-      if(p.aerial){const phase=p.aerial.elapsed/p.aerial.duration;g.rotation.x=-Math.sin(phase*Math.PI)*.28;}
+      if(p.aerial){const phase=p.aerial.elapsed/p.aerial.duration,arc=Math.sin(phase*Math.PI),style=p.aerial.style??'header';
+        if(style==='bicycle'){
+          // Back to goal, body thrown flat, one leg scissoring over the head.
+          g.rotation.y=visual.renderHeading+Math.PI;g.rotation.x=-arc*1.5;g.position.y+=arc*.25;const kick=Math.sin(Math.min(1,phase*1.9)*Math.PI);visual.legs[0].rotation.x=-1.9*kick;visual.legs[1].rotation.x=-.7+.9*kick;visual.knees[0].rotation.x=.25;visual.knees[1].rotation.x=1.1*(1-kick);
+        }else if(style==='scissor'){
+          // Side-on in the air, the striking leg swung across at chest height.
+          g.rotation.z=arc*1.25;g.rotation.x=-arc*.25;const kick=Math.sin(Math.min(1,phase*1.9)*Math.PI);visual.legs[0].rotation.x=-1.5*kick;visual.legs[1].rotation.x=.5*kick;visual.knees[1].rotation.x=.9*kick;
+        }else if(style==='volley'){
+          g.rotation.x=arc*.22;g.rotation.z=arc*.2;const kick=Math.sin(Math.min(1,phase*2.2)*Math.PI);visual.legs[0].rotation.x=-1.25*kick;visual.knees[0].rotation.x=.5*(1-kick);
+        }else g.rotation.x=-arc*.28;}
       visual.arms.forEach((arm,j)=>{arm.rotation.x=dampJoint(arm.rotation.x,pose.arms[j],dt);arm.rotation.z=(j===0?1:-1)*(p.throwAnim>0?2.8:p.aerial?.75:.08);});
       if(p.throwAnim>0){const phase=match.throwState?.taker===p.id?match.throwState.elapsed/.65:1;visual.arms.forEach(arm=>arm.rotation.x=-.35-phase*.55);}
       if(p.index===0&&speed<1.1&&match.owner!==p.id){const breathe=Math.sin(match.controlTime*2.3+p.id)*.025;g.position.y+=breathe;visual.knees.forEach(knee=>knee.rotation.x=.22);visual.legs.forEach(leg=>leg.rotation.x=-.1);visual.arms.forEach((arm,i)=>{arm.rotation.x=-.32+breathe;arm.rotation.z=i?.32:-.32;});}

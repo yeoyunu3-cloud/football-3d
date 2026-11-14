@@ -1,10 +1,10 @@
-import {eventMinute,fillEventRow,scoreSummary} from './event-format.js?v=20261114-corner3';
-import {KIT_PRESETS} from './kits.js?v=20261114-corner3';
-import {FORMATIONS} from './match.js?v=20261114-corner3';
-import {applyClub,sanitizeClub} from './roster.js?v=20261114-corner3';
-import {ARCHETYPES} from './player-traits.js?v=20261114-corner3';
-import {loadSquads,saveSquads,createSquad,deleteSquad,validateNumber,loadHistory,clearHistory} from './squads.js?v=20261114-corner3';
-import {notify,textNode} from './ui.js?v=20261114-corner3';
+import {eventMinute,fillEventRow,scoreSummary} from './event-format.js?v=20261114-traits3';
+import {KIT_PRESETS} from './kits.js?v=20261114-traits3';
+import {FORMATIONS} from './match.js?v=20261114-traits3';
+import {applyClub,sanitizeClub} from './roster.js?v=20261114-traits3';
+import {ARCHETYPES,SPECIAL_TRAITS,SPECIAL_IDS,isKeeperTrait,validSpecials} from './player-traits.js?v=20261114-traits3';
+import {loadSquads,saveSquads,createSquad,deleteSquad,validateNumber,loadHistory,clearHistory} from './squads.js?v=20261114-traits3';
+import {notify,textNode} from './ui.js?v=20261114-traits3';
 export const IMPORTANT_EVENTS=new Set(['goal','foul','yellow','red','penaltyGoal','penaltyMiss']);
 export const EVENT_LABELS={penaltyGoal:'승부차기 성공',penaltyMiss:'승부차기 실패',shootoutStart:'승부차기 시작',shootoutEnd:'승부차기 종료',addedTime:'추가시간',loft:'띄운 패스',start:'경기 시작',kickoff:'킥오프',secondHalf:'후반 시작',halftime:'하프타임',fulltime:'경기 종료',goal:'골',yellow:'경고',red:'퇴장',foul:'파울',throw:'스로인',corner:'코너킥',goalKick:'골킥',freeKick:'프리킥',indirect:'간접 프리킥',penalty:'페널티킥',pass:'패스',through:'스루패스',cross:'크로스',shoot:'슛',save:'선방',received:'패스 수신',interception:'가로채기',block:'슛 차단',heavyTouch:'불안정한 첫 터치',headerShot:'헤딩 슛',headerPass:'헤딩 패스',clearance:'클리어',abandoned:'경기 중단'};
 export function eventText(e){return `${e.shootout?`${e.round??''}차`:eventMinute(e.time)} · ${EVENT_LABELS[e.type]??e.type}${e.team>=0?` · ${e.team===0?'홈':'원정'}`:''}${e.name?` ${e.number}번 ${e.name}`:''}${e.ownGoal?' (자책골)':''}${e.reason?` · ${e.reason}`:''}${e.victim?` → ${e.victim}`:''}`;}
@@ -33,7 +33,13 @@ export function initHome({match,preview,onStart,onApply,onShow}){
   function renderSetup(){renderOpponents();const field=$('setup-lineup');field.replaceChildren();club.players.forEach((p,i)=>{const node=textNode('button','','formation-player');node.append(textNode('b',p.number),textNode('small',p.name));node.type='button';node.title=p.name;node.setAttribute('aria-label',`${p.number}번 ${p.name} 편집`);node.style.left=`${Math.max(6,Math.min(94,(p.x+50)/49*100))}%`;node.style.top=`${Math.max(7,Math.min(93,(p.z+31)/62*100))}%`;node.onclick=()=>{openClub(true);select(i);};field.append(node);});}
   function validNumber(){const field=$('edit-number'),error=validateNumber(club,selected,Number(field.value));field.setCustomValidity(error);$('number-error').textContent=error;$('number-error').hidden=!error;return !error;}
   function alertNumber(){if(validNumber())return true;const error=$('number-error').textContent;if(warnedNumber!==error){warnedNumber=error;notify('등번호를 변경할 수 없습니다',error);}return false;}
-  function select(i,force=false){if(!force&&i!==selected&&!alertNumber())return false;selected=i;const p=editable();for(const key of ['name','number','height','weight','skin','hair','role','archetype'])$(`edit-${key}`).value=p[key];$('edit-role').disabled=i===0;$('edit-archetype').disabled=i===0;$('edit-role').options[0].disabled=i>0&&i<11;$('edit-number').setCustomValidity('');$('number-error').hidden=true;warnedNumber='';render();if(window.matchMedia('(max-width:600px)').matches)list.scrollLeft=buttons[i].offsetLeft-list.offsetLeft-list.clientWidth/2+buttons[i].clientWidth/2;return true;}
+  function select(i,force=false){if(!force&&i!==selected&&!alertNumber())return false;selected=i;const p=editable();for(const key of ['name','number','height','weight','skin','hair','role','archetype'])$(`edit-${key}`).value=p[key];$('edit-role').disabled=i===0;$('edit-archetype').disabled=i===0;fillSpecials(i,p);$('edit-role').options[0].disabled=i>0&&i<11;$('edit-number').setCustomValidity('');$('number-error').hidden=true;warnedNumber='';render();if(window.matchMedia('(max-width:600px)').matches)list.scrollLeft=buttons[i].offsetLeft-list.offsetLeft-list.clientWidth/2+buttons[i].clientWidth/2;return true;}
+  // 신특 pickers: two slots, keeper traits only for the keeper, the same trait cannot fill both slots.
+  function fillSpecials(i,p){const ids=SPECIAL_IDS.filter(id=>isKeeperTrait(id)===(i===0)),current=validSpecials(p.specials,i);
+    [0,1].forEach(slot=>{const sel=$(`edit-special-${slot}`);sel.replaceChildren();const none=document.createElement('option');none.value='';none.textContent='없음';sel.append(none);let group=null,og=null;for(const id of ids){const t=SPECIAL_TRAITS[id];if(t.group!==group){group=t.group;og=document.createElement('optgroup');og.label=group;sel.append(og);}const o=document.createElement('option');o.value=id;o.textContent=t.label;og.append(o);}sel.value=current[slot]??'';});
+    describeSpecials(current);}
+  function describeSpecials(list){$('edit-special-desc').textContent=list.length?list.map(id=>`${SPECIAL_TRAITS[id].label}: ${SPECIAL_TRAITS[id].desc}`).join(' / '):'신특 없음';}
+  for(const slot of [0,1])$(`edit-special-${slot}`).addEventListener('change',()=>{const list=validSpecials([$('edit-special-0').value,$('edit-special-1').value].filter(Boolean),selected);editable().specials=list;describeSpecials(list);save();fillSpecials(selected,editable());});
   function showView(view){$('play-room').hidden=view!=='play';$('club-workspace').hidden=view!=='club';$('club-toolbar').hidden=view!=='club';$('history-room').hidden=view!=='history';for(const name of ['play','club','history'])$(`nav-${name}`).setAttribute('aria-pressed',String(view===name));if(view==='history')renderHistory();}
   function openClub(fromSetup){fromSetup=fromSetup||!$('pre-match').hidden;clubReturn=fromSetup?'setup':'hub';showView('club');$('club-back').textContent=fromSetup?'← 경기 준비':'← 홈';}
   for(const tab of ['player','kit'])$(`tab-${tab}`).onclick=()=>{for(const name of ['player','kit'])$(`tab-${name}`).setAttribute('aria-pressed',String(name===tab));$('player-editor').hidden=tab!=='player';$('kit-library').hidden=tab!=='kit';$('club-workspace').classList.toggle('kit-view',tab==='kit');if(tab==='kit')$('club-workspace').append($('kit-library'));else document.querySelector('.custom-panel').insertBefore($('kit-library'),$('player-editor'));};

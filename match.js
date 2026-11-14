@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-corner3';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-corner3';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-corner3';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-corner3';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-corner3';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-corner3';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-corner3';
-import {shapeTarget} from './formation-shape.js?v=20261114-corner3';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-corner3';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-corner3';
-import {planThroughPass} from './through-pass.js?v=20261114-corner3';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-corner3';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-corner3';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-corner3';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-corner3';
-import {stepGoalBall} from './goal-effects.js?v=20261114-corner3';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-corner3';
-import {Shootout} from './shootout.js?v=20261114-corner3';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-corner3';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-corner3';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-traits3';
+import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-traits3';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-traits3';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-traits3';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-traits3';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-traits3';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-traits3';
+import {shapeTarget} from './formation-shape.js?v=20261114-traits3';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-traits3';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-traits3';
+import {planThroughPass} from './through-pass.js?v=20261114-traits3';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-traits3';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-traits3';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-traits3';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-traits3';
+import {stepGoalBall} from './goal-effects.js?v=20261114-traits3';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-traits3';
+import {Shootout} from './shootout.js?v=20261114-traits3';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-traits3';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-traits3';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -73,6 +73,8 @@ const SKILLS={
   rabonaFake:{dur:.65,fool:.72,reach:6.5,step:(u,s)=>u<.5?{vf:.2,vl:0,bf:.6}:{vf:2,vl:s*6.2,bf:.55,bl:s*.65}},
 };
 export const SKILL_NAMES=Object.keys(SKILLS);
+// How much of the running speed each move keeps (default .8). Stop-and-turn moves keep little or none.
+const SKILL_CARRY={dragBack:0,heelFlick:0,heelFlickTurn:0,scoopTurn:0,fancyDragBack:0,juggle:0,ballRoll:.15,sideStep:.3,turn:.25,elasticoChop:.25,fakeCut:.5,fakePass:.5,rabonaFake:.5,dragBackFake:.3,sombreroFlick:.3,okochaSombrero:.55,roulette:.65,berbatovSpin:.65,turnSpin:.7,elTornado:.6,flickUp:.7};
 
 const distance = (a,b) => Math.hypot(a.x-b.x,a.z-b.z);
 const signOf = team => team===0?1:-1;
@@ -87,7 +89,7 @@ export class Match {
   constructor() {
     this.players=Array.from({length:22},(_,id)=>{
       const team=id<11?0:1,index=id%11,s=this.attackSign(team);
-      return {id,team,index,name:team===0?NAMES[index]:['서도윤','고시온','권유찬','남도하','신하람','유태민','정시온','한재원','차도겸','노이준','민서준'][index],number:NUMBERS[index],role:ROLES[index],archetype:DEFAULT_ARCHETYPES[index],x:FORMATION[index][0]*s,z:FORMATION[index][1]*s,vx:0,vz:0,heading:s*Math.PI/2,stamina:100,stride:0,kickAnim:0,dive:0,diveSide:1,diveHeight:.5,diveVX:0,diveVZ:0,decision:0,reaction:0,targetX:0,targetZ:0};
+      return {id,team,index,name:team===0?NAMES[index]:['서도윤','고시온','권유찬','남도하','신하람','유태민','정시온','한재원','차도겸','노이준','민서준'][index],number:NUMBERS[index],role:ROLES[index],archetype:DEFAULT_ARCHETYPES[index],specials:[...DEFAULT_SPECIALS[index]],x:FORMATION[index][0]*s,z:FORMATION[index][1]*s,vx:0,vz:0,heading:s*Math.PI/2,stamina:100,stride:0,kickAnim:0,dive:0,diveSide:1,diveHeight:.5,diveVX:0,diveVZ:0,decision:0,reaction:0,targetX:0,targetZ:0};
     });
     this.ball={x:0,z:0,y:.34,vx:0,vz:0,vy:0};
     this.input={x:0,z:0,sprint:false};
@@ -375,7 +377,7 @@ export class Match {
     if(this.cardWait>0||this.restart&&!this.restart.manual)return false;
     if(this.charge&&this.charge.type!==type||this.pending&&this.pending.type!==type){this.cancelKick();return false;}
     if(this.restart?.manual){this.charge??={type,start:this.controlTime,player:this.selected,shotStyle};return true;}
-    if(this.owner<0&&this.ball.y>1.1){this.startHeader(this.players[this.selected],type==='pass'?'pass':'shoot');return;}
+    if(this.owner<0&&this.ball.y>(type==='shoot'?.6:1.1)){this.startHeader(this.players[this.selected],type==='pass'?'pass':'shoot');return;}
     if(!this.charge){this.charge={type,start:this.controlTime,player:this.selected,shotStyle};if(type==='through'&&this.owner===this.selected){const runner=this.throughTarget(this.players[this.selected],.4,this.input);if(runner){this.charge.runner=runner.id;this.charge.runUpdateAt=this.time;runner.runTarget=this.throughSpace(this.players[this.selected],runner,.4,this.input);runner.runUntil=this.time+1.2;}}}
   }
   releaseKick(type){
@@ -432,11 +434,12 @@ export class Match {
     const victim=this.players[this.owner];if(victim.team===p.team)return false;
     const roll=(this.random??Math.random)(),d=distance(p,this.ball);
     p.tackleAnim=.42;p.tackleCooldown=.8;p.heading=Math.atan2(this.ball.x-p.x,this.ball.z-p.z);this.charge=null;this.pending=null;
-    if(d>2.2){p.vx*=.35;p.vz*=.35;return true;}
+    const wild=hasTrait(p,'wildTackler');
+    if(d>(wild?2.9:2.2)){p.vx*=.35;p.vz*=.35;return true;}
     const front=(p.x-victim.x)*Math.sin(victim.heading)+(p.z-victim.z)*Math.cos(victim.heading);
-    if(front<-.35){if(roll<.6){this.foul(p,victim,6+roll*5);return true;}p.vx*=.35;p.vz*=.35;return true;}
-    if(roll>clamp(1-d*.35,.25,.75)){p.vx*=.35;p.vz*=.35;return true;}
-    if(d<1.5&&roll<.5){this.owner=p.id;this.possessionTime=0;p.decision=.38;}
+    if(front<-.35){if(roll<(wild?.3:.6)){this.foul(p,victim,6+roll*5);return true;}p.vx*=.35;p.vz*=.35;return true;}
+    if(roll>clamp(1-d*.35,.25,.75)+(wild?.12:0)+(hasTrait(p,'fighter')?.1:0)){p.vx*=.35;p.vz*=.35;return true;}
+    if(d<(wild?2:1.5)&&roll<.5){this.owner=p.id;this.possessionTime=0;p.decision=.38;}
     else{const b=this.ball,dx=b.x-victim.x,dz=b.z-victim.z,len=Math.hypot(dx,dz)||1;this.owner=-1;Object.assign(b,{vx:dx/len*5+p.vx*.4,vz:dz/len*5+p.vz*.4,vy:.4,y:.34,shotFlight:null,flightDrag:.9,curveRemaining:0});this.noCatch=0;}
     victim.controlCooldown=.55;victim.vx*=.4;victim.vz*=.4;this.lastTouch=p.id;this.offside=null;this.directRestart=null;this.receiver=-1;this.receiveAssist=0;this.recordEvent('interception',p.team,p.id);
     if(p.team===0){this.selected=p.id;this.manualSelection=false;}return true;
@@ -493,13 +496,19 @@ export class Match {
   // Skill moves (Shift + arrows, Q feints, Z + back drag-back, D/A then S fakes) for the human carrier.
   // Each move scripts the player's velocity and the ball's offset in the attacker's frame (f = toward goal,
   // l = attacker's left) and wrong-foots defenders close by.
+  // True for a player steered by a person: the local user's selection, or the online guest's (see setRemote).
+  isHumanControlled(p){return this.mode==='player'&&(p.team===0&&p.id===this.selected||this.remote&&p.id===this.remote.selected);}
   startSkill(name,side=1,player=null){
     const p=player??this.players[this.selected],def=SKILLS[name];
     if(!def||!player&&this.mode!=='player'||!this.running||this.paused||this.ended||this.phase!=='play'||this.restart||this.goalWait>0||this.kickoffState||this.owner!==p?.id||p.index===0||p.skill&&!['feint','bigFeint'].includes(p.skill.name))return false;
     this.charge=null;this.pending=null;
-    p.skill={name,t:0,dur:def.dur,side:side>=0?1:-1,s:this.attackSign(p.team),released:false,ball:{f:.75,l:0,y:0}};
-    p.skillImmuneUntil=this.controlTime+def.dur;
-    for(const q of this.players)if(q.team!==p.team&&!q.sentOff&&q.index>0&&distance(q,p)<(def.reach??5.5))q.fooledUntil=this.controlTime+(def.fool??.45);
+    // The move plays out along the way the player is travelling (not always toward goal) and keeps most of his
+    // running speed, so a skill at full sprint stays a skill at full sprint.
+    const speed=Math.hypot(p.vx,p.vz),fx=speed>1.5?p.vx/speed:Math.sin(p.heading),fz=speed>1.5?p.vz/speed:Math.cos(p.heading),quick=hasTrait(p,'trickster')?.8:1;
+    p.skill={name,t:0,dur:def.dur*quick,side:side>=0?1:-1,s:this.attackSign(p.team),fx,fz,lx:fz,lz:-fx,v0:speed,carry:SKILL_CARRY[name]??.8,released:false,ball:{f:.75,l:0,y:0}};
+    p.skillImmuneUntil=this.controlTime+p.skill.dur;
+    // Only defenders close in front are wrong-footed, never the player the user is steering.
+    for(const q of this.players){if(q.team===p.team||q.sentOff||q.index===0||this.isHumanControlled(q))continue;const dx=q.x-p.x,dz=q.z-p.z,d=Math.hypot(dx,dz);if(d<(def.reach??5.5)*.75&&(dx*fx+dz*fz)/(d||1)>-.2)q.fooledUntil=this.controlTime+(def.fool??.45)*quick*(hasTrait(q,'predator')?.5:1);}
     if(def.kick)p.kickAnim=.28,p.kickStyle=def.kick;
     return true;
   }
@@ -513,12 +522,12 @@ export class Match {
     const k=p.skill,def=SKILLS[k.name];k.t+=dt;const u=clamp(k.t/k.dur,0,1),s=k.s;
     if(this.owner!==p.id&&!k.released){p.skill=null;return;}
     const m=def.step(u,k.side,k,this,p);
-    const vx=s*m.vf,vz=-s*m.vl;p.previousX=p.x;p.previousZ=p.z;
+    const vf=m.vf>=0?Math.min(m.vf+k.v0*k.carry,Math.max(m.vf,k.v0+1.2)):m.vf,vx=k.fx*vf+k.lx*m.vl,vz=k.fz*vf+k.lz*m.vl;p.previousX=p.x;p.previousZ=p.z;
     p.vx+=(vx-p.vx)*Math.min(1,dt*14);p.vz+=(vz-p.vz)*Math.min(1,dt*14);
     p.x=clamp(p.x+p.vx*dt,-54,54);p.z=clamp(p.z+p.vz*dt,-35.5,35.5);
     if(m.heading!==undefined)p.heading=m.heading;else if(Math.hypot(p.vx,p.vz)>.6)p.heading=turn(p.heading,Math.atan2(p.vx,p.vz),dt*10);
     k.ball={f:m.bf??.75,l:m.bl??0,y:m.by??0};
-    if(m.release&&!k.released&&this.owner===p.id){k.released=true;const r=m.release,b=this.ball;this.owner=-1;Object.assign(b,{vx:p.vx+s*r.f,vz:p.vz-s*(r.l??0),vy:r.y*FIELD_SCALE,y:Math.max(b.y,.4),shotFlight:null,flightDrag:null,curveRemaining:0});this.lastTouch=p.id;this.noCatch=r.noCatch??.25;this.possessionTime=0;this.receiver=-1;}
+    if(m.release&&!k.released&&this.owner===p.id){k.released=true;const r=m.release,b=this.ball;this.owner=-1;Object.assign(b,{vx:p.vx+k.fx*r.f+k.lx*(r.l??0),vz:p.vz+k.fz*r.f+k.lz*(r.l??0),vy:r.y*FIELD_SCALE,y:Math.max(b.y,.4),shotFlight:null,flightDrag:null,curveRemaining:0});this.lastTouch=p.id;this.noCatch=r.noCatch??.25;this.possessionTime=0;this.receiver=-1;}
     if(u>=1)p.skill=null;
   }
   // Q while defending (기본수비 "수비 도움 요청"): the second defender goes to the ball for a moment.
@@ -573,7 +582,7 @@ export class Match {
     if(this.kickoffState){this.kickoffState.remaining=0;return true;}
     if(this.cardWait>0)return false;
     if(this.restart)return this.restart.manual?(this.restart.plan?this.releaseDrawnRestart():this.takeRestart(type,power,shotStyle)):false;
-    if(this.owner<0&&this.ball.y>1.1){return this.startHeader(this.players[this.selected],type==='pass'?'pass':'shoot');}
+    if(this.owner<0&&this.ball.y>(type==='shoot'?.6:1.1)){return this.startHeader(this.players[this.selected],type==='pass'?'pass':'shoot');}
     this.pending={type,power,shotStyle,aim:{...this.input},player:this.selected,until:this.time+.42};
     return this.tryUserKick();
   }
@@ -584,7 +593,7 @@ export class Match {
     const {type,power,aim,shotStyle}=this.pending;this.pending=null;return this.strike(p,type,power,aim,null,shotStyle);
   }
   strike(p,type,power=.35,aim=null,preferredTarget=null,shotStyle='auto') {
-    const s=this.attackSign(p.team),b=this.ball;b.shotFlight=null;b.flightDrag=null;b.curlX=b.curlZ=b.curveRemaining=0;
+    const s=this.attackSign(p.team),b=this.ball;b.shotFlight=null;b.flightDrag=null;b.backspin=false;b.curlX=b.curlZ=b.curveRemaining=0;
     this.offsideSnapshot(p.team,p.id);this.lastKick={type,team:p.team,isShot:type==='shoot'};if(['pass','through','cross','loft'].includes(type))for(const q of this.players)if(q.team!==p.team&&q.index>0)q.ballReactionUntil=this.controlTime+.1+Math.min(.07,distance(q,b)/200);
     let tx=s*53.5,tz=0,speed=33,loft=2.6,kickFlight=0,shotBoost=1;
     // First-time strike: a ball hit as it arrives leaves with the swing plus part of its own pace, like a real
@@ -658,9 +667,19 @@ export class Match {
     Object.assign(b,{vx:dx/len*speed,vz:dz/len*speed,vy:loft});
     // Curl (Z + S / Z + A): constant side spin, with the launch angled out so the ball still arrives on target.
     if((shotStyle==='curl'||shotStyle==='flair')&&['pass','cross'].includes(type)&&kickFlight>0){const k=b.flightDrag&&b.y<=.38?b.flightDrag:.12,a=type==='cross'?5.5:shotStyle==='flair'?3.6:4.2,side=(p.z>=0?-1:1)*(shotStyle==='flair'?-1:1),nx=-dz/len*side,nz=dx/len*side,v0=a/k-a*kickFlight/(1-Math.exp(-k*kickFlight));b.vx+=nx*v0;b.vz+=nz*v0;b.curlX=nx*a;b.curlZ=nz*a;b.curveRemaining=kickFlight;}
-    if(type==='shoot')Object.assign(b,planShot(b,{x:tx,z:tz},{power,human:p.id===this.selected&&this.mode==='player',side:p.z>=0?-1:1,style:shotStyle,boost:shotBoost}));
+    // 레이저 슈터: D · DD shots leave low and fast.
+    const laser=type==='shoot'&&['auto','low'].includes(shotStyle)&&hasTrait(p,'laserShooter');
+    if(type==='shoot')Object.assign(b,planShot(b,{x:tx,z:tz},{power,human:p.id===this.selected&&this.mode==='player',side:p.z>=0?-1:1,style:shotStyle,boost:shotBoost*(laser?1.1:1),laser}));
     // 깔아차기 (D, D): keep the shot on the turf instead of the planned arc.
     if(type==='shoot'&&shotStyle==='low'){b.y=.34;b.vy=0;b.shotFlight=null;b.flightDrag=.2;b.vx*=1.06;b.vz*=1.06;}
+    if(type==='shoot'){
+      // GK 데드아이 reads long shots early; 블로커 throws himself into the lane of a shot struck near him.
+      const gk=this.players[(1-p.team)*11],dist=Math.abs(s*52.5-b.x);if(dist>19&&hasTrait(gk,'gkDeadeye'))gk.reaction=Math.max(.04,gk.reaction-.07);
+      const sp=Math.hypot(b.vx,b.vz)||1,ux=b.vx/sp,uz=b.vz/sp;
+      for(const q of this.players){if(q.team===p.team||q.sentOff||q.index===0||!hasTrait(q,'blocker')||this.isHumanControlled(q))continue;const rx=q.x-b.x,rz=q.z-b.z,along=rx*ux+rz*uz,off=Math.abs(rx*uz-rz*ux);
+        if(along>1.2&&along<9&&off<1.7&&(this.random??Math.random)()<.5){q.blockUntil=this.controlTime+.5;q.x=b.x+ux*along;q.z=b.z+uz*along;q.vx=q.vz=0;q.tackleAnim=.42;break;}}
+    }
+    if(type==='through'&&shotStyle==='lob'&&hasTrait(p,'commander'))b.backspin=true;
     p.holdingBall=false;this.owner=-1;this.lastTouch=p.id;this.noCatch=['pass','through','cross','loft'].includes(type)?.14:.22;this.possessionTime=0;p.kickAnim=.28;p.kickStyle=type;p.decision=.55;
     return true;
   }
@@ -699,9 +718,13 @@ export class Match {
   }
   startHeader(p,kind='shoot'){
     if(p.sentOff||p.aerial||(p.headerCooldown??0)>0||distance(p,this.ball)>5)return false;
-    const expected=predictBall(this.ball,.28).y,head=2*heightOf(p)/180;
+    const expected=predictBall(this.ball,.28).y,head=2*heightOf(p)/180,acro=hasTrait(p,'acrobatic'),human=this.isHumanControlled(p);
+    // Shots at an airborne ball: a volley when it is below the chest; with 아크로바틱 피니셔 a scissor kick at chest
+    // height and a bicycle kick above it. Everything else is a header.
+    let style='header';
+    if(kind==='shoot'){if(expected<1.3)style='volley';else if(acro&&expected<2.7&&(human||(this.random??Math.random)()<.6))style=expected>1.75?'bicycle':'scissor';}
     // Aerial players jump higher (target man ~1m, small speedster ~.77m).
-    p.aerial={kind,elapsed:0,duration:.68,hit:false,maxJump:clamp(expected-head,.12,.55+.3*traits(p).aerial)};p.jump=0;return true;
+    p.aerial={kind,style,contactY:clamp(expected,.45,2.5),elapsed:0,duration:style==='bicycle'?.8:style==='scissor'?.72:.68,hit:false,maxJump:style==='volley'?.06:style==='bicycle'?clamp(expected-1.25,.5,1.25):style==='scissor'?clamp(expected-1,.3,.9):clamp(expected-head,.12,.55+.3*aerialOf(p))};p.jump=0;return true;
   }
   updateAerials(dt){
     const b=this.ball;
@@ -715,7 +738,8 @@ export class Match {
       if(this.lastKick?.type==='loft'&&this.receiver===p.id)continue;
       if(this.owner>=0||b.y<1.15||b.y>4.4||p.headerCooldown>0||p.id===this.selected&&this.mode==='player'&&!(this.receiver===p.id&&this.receiveAssist>0&&this.lastKick?.type==='cross'&&!this.charge))continue;
       const future=predictBall(b,.28),attacking=p.x*this.attackSign(p.team)>20;
-      if(future.y>1.45&&future.y<3.3+.5*(traits(p).aerial-1)&&distance(p,future)<2.7*(.75+.25*traits(p).aerial))this.startHeader(p,attacking?'shoot':p.x*this.attackSign(p.team)<-25?'clear':'pass');
+      if(future.y>1.45&&future.y<3.3+.5*(aerialOf(p)-1)&&distance(p,future)<2.7*(.75+.25*aerialOf(p)))this.startHeader(p,attacking?'shoot':p.x*this.attackSign(p.team)<-25?'clear':'pass');
+      else if(attacking&&p.x*this.attackSign(p.team)>30&&future.y>.6&&future.y<=1.45&&b.vy<0&&distance(p,future)<1.9&&!this.isHumanControlled(p))this.startHeader(p,'shoot');
     }
   }
   tryHeaders(before){
@@ -724,7 +748,7 @@ export class Match {
     let winner=null,winScore=-Infinity;
     for(const p of this.players){
       if(!p.aerial||p.aerial.hit||p.sentOff)continue;
-      const t=traits(p),head={x:p.x,y:.12+2*heightOf(p)/180+(p.jump??0),z:p.z},miss=sweepDistance3(head,before,b),reach=.64*(.8+.2*t.aerial);
+      const t=traits(p),foot=p.aerial.style&&p.aerial.style!=='header',head={x:p.x,y:foot?p.aerial.contactY:.12+2*heightOf(p)/180+(p.jump??0),z:p.z},miss=sweepDistance3(head,before,b),reach=foot?1.15:.64*(.8+.2*aerialOf(p));
       if(miss>reach)continue;
       const score=t.aerial*1.2+t.strength*.5-miss/reach+(this.random??Math.random)()*.5;if(score>winScore){winScore=score;winner=p;}
     }
@@ -733,9 +757,9 @@ export class Match {
       p.aerial.hit=true;const s=this.attackSign(p.team),kind=p.aerial.kind;
       let target=kind==='pass'?this.passTarget(p,.25):null;
       const tx=target?target.x:kind==='clear'?p.x+s*20:s*53.5,tz=target?target.z:kind==='clear'?(p.z>=0?30:-30):this.players[(1-p.team)*11].z>=0?-2.6:2.6;
-      const dx=tx-b.x,dz=tz-b.z,d=Math.hypot(dx,dz)||1,speed=(kind==='shoot'?23:kind==='clear'?24:17)*(.88+.12*traits(p).aerial);
-      this.offsideSnapshot(p.team,p.id);Object.assign(b,{shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0,vx:dx/d*speed,vz:dz/d*speed,vy:kind==='clear'?3.6:kind==='shoot'?-2.5:1});
-      this.owner=-1;this.lastTouch=p.id;this.noCatch=.2;this.lastKick={type:'header',team:p.team,isShot:kind==='shoot'};this.recordEvent(kind==='shoot'?'headerShot':kind==='clear'?'clearance':'headerPass',p.team,p.id);this.receiver=target?.id??-1;p.headerCooldown=.65;
+      const style=p.aerial.style??'header',acro=hasTrait(p,'acrobatic'),dx=tx-b.x,dz=tz-b.z,d=Math.hypot(dx,dz)||1,speed=style==='bicycle'?33:style==='scissor'?31:style==='volley'?(acro?33:28):(kind==='shoot'?23:kind==='clear'?24:17)*(.88+.12*aerialOf(p));if(style!=='header'){p.kickAnim=.3;p.kickStyle='shoot';}
+      this.offsideSnapshot(p.team,p.id);Object.assign(b,{shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0,vx:dx/d*speed,vz:dz/d*speed,vy:kind==='clear'?3.6:style==='volley'?1.6:style==='bicycle'||style==='scissor'?-.6:kind==='shoot'?-2.5:1});
+      this.owner=-1;this.lastTouch=p.id;this.noCatch=.2;this.lastKick={type:'header',team:p.team,isShot:kind==='shoot',style};this.recordEvent(kind==='shoot'?'headerShot':kind==='clear'?'clearance':'headerPass',p.team,p.id,{style});if(style==='bicycle'||style==='scissor')this.highlight={kind:'acrobatic',remaining:.8};this.receiver=target?.id??-1;p.headerCooldown=.65;
       if(kind==='shoot')this.stats.shots[p.team]++;return true;
     }
     return false;
@@ -819,7 +843,7 @@ export class Match {
     // A run the player asked for (Q / 1~4) beats the onside hold and shape logic: timing the pass is the player's job.
     if(this.calledRun?.id===p.id&&this.calledRun.until>this.time&&p.runUntil>this.time&&p.runTarget){
       // Until the pass is played he times the run on the offside line (Law 11), then bursts in behind.
-      let rx=p.runTarget.x;if(carrier?.team===p.team){const line=Math.max(0,b.x*s,this.players.filter(o=>o.team!==p.team&&!o.sentOff).map(o=>o.x*s).sort((a,c)=>c-a)[1]??52.5);rx=s*Math.min(rx*s,line-.45);}
+      let rx=p.runTarget.x;if(carrier?.team===p.team){const line=Math.max(0,b.x*s,this.players.filter(o=>o.team!==p.team&&!o.sentOff).map(o=>o.x*s).sort((a,c)=>c-a)[1]??52.5);rx=s*Math.min(rx*s,line-(hasTrait(p,'lineBreaker')?.15:.45));}
       return {x:clamp(rx,-50.3,50.3),z:clamp(p.runTarget.z,-32,32),speed:9.6};}
     if(own){const support=openSupport(this,p,carrier,{x,z,speed});x=support.x;z=support.z;speed=support.speed;}
     if(other){const cover=coverTarget(this,p,carrier,{x,z,speed});x=cover.x;z=cover.z;speed=cover.speed;}
@@ -870,14 +894,22 @@ export class Match {
       if(dist>0&&dist<radius){const push=(radius-dist)/radius*(other.team===p.team?3.4:1.1);vx+=ox/dist*push;vz+=oz/dist*push;}
     }
     // Player type: pace scales top speed, agility scales acceleration and turning.
-    const t=traits(p);maxSpeed*=t.pace;vx*=t.pace;vz*=t.pace;
+    const t=traits(p);let pace=t.pace,quick=1;
+    // 신특: 스피드스터 (on the ball), 크로스 포처 (attacking a cross), 프레데터 (defending turns), 체이서 (tracking back), 라인 브레이커 (runs in behind).
+    const ownerTeam=this.owner>=0?this.players[this.owner].team:-1,sgn=this.attackSign(p.team);
+    if(this.owner===p.id&&hasTrait(p,'speedster')){pace*=1.05;quick*=1.3;}
+    if(this.crossUntil>this.time&&this.crossTeam===p.team&&hasTrait(p,'crossPoacher'))pace*=1.12;
+    if(ownerTeam>=0&&ownerTeam!==p.team&&hasTrait(p,'predator'))quick*=1.28;
+    if(ownerTeam>=0&&ownerTeam!==p.team&&(tx-p.x)*sgn<-2&&hasTrait(p,'chaser'))pace*=1.08;
+    if(p.runUntil>this.time&&p.runTarget&&hasTrait(p,'lineBreaker'))pace*=1.07;
+    maxSpeed*=pace;vx*=pace;vz*=pace;
     const desired=Math.hypot(vx,vz);if(desired>maxSpeed){vx*=maxSpeed/desired;vz*=maxSpeed/desired;}
-    const deltaX=vx-p.vx,deltaZ=vz-p.vz,delta=Math.hypot(deltaX,deltaZ),accel=(direct?(desired>.1?48:65):25)*t.agility;
+    const deltaX=vx-p.vx,deltaZ=vz-p.vz,delta=Math.hypot(deltaX,deltaZ),accel=(direct?(desired>.1?48:65):25)*t.agility*quick;
     const factor=delta>0?Math.min(1,accel*dt/delta):1;
     p.vx+=deltaX*factor;p.vz+=deltaZ*factor;
     p.x=clamp(p.x+p.vx*dt,-54,54);p.z=clamp(p.z+p.vz*dt,-35.5,35.5);
     const speed=Math.hypot(p.vx,p.vz);
-    if(speed>.2)p.heading=turn(p.heading,Math.atan2(p.vx,p.vz),dt*(direct?23:12)*t.agility);
+    if(speed>.2)p.heading=turn(p.heading,Math.atan2(p.vx,p.vz),dt*(direct?23:12)*t.agility*quick);
     p.stride+=speed*dt*1.65;p.targetX=tx;p.targetZ=tz;
   }
   moveCarrierAI(p,dt) {
@@ -928,7 +960,7 @@ export class Match {
             if(behind&&speed>7&&impact>8&&distance(offender,this.ball)>1.45){this.foul(offender,victim,impact);return;}
           }
         }
-        const nx=d>.001?dx/d:1,nz=d>.001?dz/d:0,amount=(min-d),massA=weightOf(a)*traits(a).strength,massB=weightOf(b)*traits(b).strength;
+        const nx=d>.001?dx/d:1,nz=d>.001?dz/d:0,amount=(min-d),massA=weightOf(a)*strengthOf(a),massB=weightOf(b)*strengthOf(b);
         if(iteration===0&&a.team!==b.team){const relative=(b.vx-a.vx)*nx+(b.vz-a.vz)*nz;if(relative<0){const impulse=Math.min(1.25,-relative*.22);a.vx-=nx*impulse*massB/(massA+massB);a.vz-=nz*impulse*massB/(massA+massB);b.vx+=nx*impulse*massA/(massA+massB);b.vz+=nz*impulse*massA/(massA+massB);}a.jostle=.45;b.jostle=-.45;}
         a.x-=nx*amount*massB/(massA+massB);a.z-=nz*amount*massB/(massA+massB);b.x+=nx*amount*massA/(massA+massB);b.z+=nz*amount*massA/(massA+massB);
       }
@@ -954,9 +986,9 @@ export class Match {
         if(p.sentOff||p.team===owner.team||p.index===0||p.decision>0||(p.fooledUntil??0)>this.controlTime||(owner.skillImmuneUntil??0)>this.controlTime)continue;
         const d=distance(p,this.ball),front=(p.x-owner.x)*Math.sin(owner.heading)+(p.z-owner.z)*Math.cos(owner.heading);
         // The human carrier only loses the ball to a clear front-on challenge, and not every time.
-        if(this.mode==='player'&&owner.team===0&&owner.id===this.selected){if(this.possessionTime<.9||d>1||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22*traits(p).strength/traits(owner).strength){p.stealCooldown=this.controlTime+1;continue;}}
+        if(this.mode==='player'&&owner.team===0&&owner.id===this.selected){if(this.possessionTime<.9||d>1||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22*strengthOf(p)/strengthOf(owner)){p.stealCooldown=this.controlTime+1;continue;}}
         // Strong carriers shield the ball: a weaker challenger often bounces off.
-        else if(d<1.3&&front>-.05&&(p.stealCooldown??0)<=this.controlTime&&(this.random??Math.random)()<clamp((traits(owner).strength-traits(p).strength)*1.1,0,.6)){p.stealCooldown=this.controlTime+.8;continue;}
+        else if(d<1.3&&front>-.05&&(p.stealCooldown??0)<=this.controlTime&&(this.random??Math.random)()<clamp((strengthOf(owner)-strengthOf(p))*1.1,0,.6)){p.stealCooldown=this.controlTime+.8;continue;}
         if((p.stealCooldown??0)>this.controlTime)continue;
         if(d<1.3&&front>-.05){this.owner=p.id;this.offside=null;this.directRestart=null;this.lastTouch=p.id;this.possessionTime=0;p.decision=.38;this.receiver=-1;if(p.team===0&&this.mode==='player'){this.selected=p.id;this.manualSelection=false;}break;}
       }
@@ -968,7 +1000,7 @@ export class Match {
     const before={x:b.x,z:b.z,y:b.y};
     if(this.owner>=0){
       const p=this.players[this.owner];
-      if(p.skill&&!p.skill.released){const k=p.skill,o=k.ball,tx=p.x+k.s*o.f,tz=p.z-k.s*o.l,blend=Math.min(1,dt*22);b.x+=(tx-b.x)*blend;b.z+=(tz-b.z)*blend;b.y+=(.34+o.y-b.y)*blend;b.vx=p.vx;b.vz=p.vz;b.vy=0;this.checkBoundary(before);return;}
+      if(p.skill&&!p.skill.released){const k=p.skill,o=k.ball,tx=p.x+k.fx*o.f+k.lx*o.l,tz=p.z+k.fz*o.f+k.lz*o.l,blend=Math.min(1,dt*22);b.x+=(tx-b.x)*blend;b.z+=(tz-b.z)*blend;b.y+=(.34+o.y-b.y)*blend;b.vx=p.vx;b.vz=p.vz;b.vy=0;this.checkBoundary(before);return;}
       if(p.index===0&&p.holdingBall){const hands=keeperContacts(p).hands,target={x:(hands[0].x+hands[1].x)/2,y:(hands[0].y+hands[1].y)/2,z:(hands[0].z+hands[1].z)/2};const d=Math.hypot(target.x-b.x,target.y-b.y,target.z-b.z),step=Math.min(1,12*dt/(d||1));b.x+=(target.x-b.x)*step;b.y+=(target.y-b.y)*step;b.z+=(target.z-b.z)*step;b.vx=b.vz=b.vy=0;return;}
       const speed=Math.hypot(p.vx,p.vz),lead=.78+(speed>8?.32:0);
       const tx=p.x+Math.sin(p.heading)*lead,tz=p.z+Math.cos(p.heading)*lead;
@@ -984,6 +1016,8 @@ export class Match {
     if(b.y>1.65)return;
     let candidate=null,closest=Infinity;
     for(const p of this.players){
+      // A player winding up a volley or acrobatic kick strikes the ball instead of trapping it.
+      if(p.aerial&&!p.aerial.hit&&p.aerial.style&&p.aerial.style!=='header')continue;
       if(p.index===0&&(p.keeperAction||b.vx*this.attackSign(p.team)<-3&&this.lastTouch>=0&&this.players[this.lastTouch].team!==p.team))continue;
       if(this.receiver>=0&&this.receiveAssist>0&&p.id!==this.receiver&&p.team===this.players[this.receiver].team&&distance(this.players[this.receiver],b)<14)continue;
       if(p.sentOff||(p.controlCooldown??0)>0||b.y>1.5*(p.profile?.height??180)/180||this.noCatch>0&&p.id===this.lastTouch)continue;
@@ -1020,7 +1054,7 @@ export class Match {
       if(p.sentOff)continue;
       const speed=resting?0:Math.hypot(p.vx,p.vz),controlled=this.mode==='player'&&p.id===this.selected;
       const sprinting=!resting&&speed>.5&&(controlled?this.input.sprint&&Math.hypot(this.input.x,this.input.z)>.09&&p.stamina>2:speed>8.4);
-      const rate=sprinting?-16:speed<.5?13:7;
+      const rate=sprinting?(hasTrait(p,'twoHearts')?-9.6:-16):speed<.5?13:7;
       p.stamina=clamp(p.stamina+rate*dt,0,100);
     }
   }
@@ -1132,7 +1166,7 @@ export class Match {
       }else if(p.id===this.owner)this.moveCarrierAI(p,dt);
       else {const target=this.tacticalTarget(p,carrier,pressers);this.movePlayer(p,target.x,target.z,target.speed,dt);if(p.index===0)p.heading=turn(p.heading,Math.atan2(this.ball.x-p.x,this.ball.z-p.z),dt*14);}
     }
-    for(const q of this.players)if(q.fooledUntil>this.controlTime&&!q.skill){q.x-=q.vx*dt*.6;q.z-=q.vz*dt*.6;}
+    for(const q of this.players)if(q.fooledUntil>this.controlTime&&!q.skill){q.x-=q.vx*dt*.45;q.z-=q.vz*dt*.45;}
     this.recoverStamina(dt);this.resolveContacts(dt);if(this.restart)return;this.integrateBall(dt);this.updateAutoSelection();this.tryUserKick();
   }
 }
