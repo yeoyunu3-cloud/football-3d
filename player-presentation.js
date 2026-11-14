@@ -1,7 +1,7 @@
-import {distributionPose} from './keeper-control.js?v=20261114-field';
+import {distributionPose} from './keeper-control.js?v=20261114-charge2';
 import * as THREE from './vendor/three.module.min.js';
-import {keeperPose} from './keeper.js?v=20261114-field';
-import {celebrationPose} from './presentation.js?v=20261112-20-release';
+import {keeperPose} from './keeper.js?v=20261114-charge2';
+import {celebrationPose} from './presentation.js?v=20261114-charge2';
 export function applyKeeperRig(visual,p){
  const g=visual.group,pose=keeperPose(p);g.rotation.set(0,p.heading,0);g.position.y=pose.rootY-.07;
  visual.knees.forEach((k,i)=>k.rotation.x=pose.kneeX?.[i]??0);

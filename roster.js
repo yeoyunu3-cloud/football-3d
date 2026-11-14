@@ -1,6 +1,6 @@
-import {KIT_PRESETS,kitData} from './kits.js?v=20261112-20-release';
-import {ARCHETYPES,DEFAULT_ARCHETYPES,validArchetype} from './player-traits.js?v=20261114-traits';
-import {FORMATION,FORMATIONS,NAMES,NUMBERS,ROLES} from './match.js?v=20261114-traits';
+import {KIT_PRESETS,kitData} from './kits.js?v=20261114-charge2';
+import {ARCHETYPES,DEFAULT_ARCHETYPES,validArchetype} from './player-traits.js?v=20261114-charge2';
+import {FORMATION,FORMATIONS,NAMES,NUMBERS,ROLES} from './match.js?v=20261114-charge2';
 export const CLUB_KEY='soccer3d.club.v1';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const number=(value,fallback,a,b)=>Number.isFinite(Number(value))?clamp(Number(value),a,b):fallback;

@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-traits';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261112-20-release';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-field';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261112-20-release';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-field';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261112-20-release';
-import {shapeTarget} from './formation-shape.js?v=20261112-20-release';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261113-shape';
-import {attackPlan,attackPosition} from './attacking.js?v=20261112-20-release';
-import {planThroughPass} from './through-pass.js?v=20261112-20-release';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261112-20-release';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261112-20-release';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261112-20-release';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-field';
-import {stepGoalBall} from './goal-effects.js?v=20261114-field';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261112-20-release';
-import {Shootout} from './shootout.js?v=20261114-field';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-field';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-field';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-charge2';
+import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-charge2';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-charge2';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-charge2';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-charge2';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-charge2';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-charge2';
+import {shapeTarget} from './formation-shape.js?v=20261114-charge2';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-charge2';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-charge2';
+import {planThroughPass} from './through-pass.js?v=20261114-charge2';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-charge2';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-charge2';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-charge2';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-charge2';
+import {stepGoalBall} from './goal-effects.js?v=20261114-charge2';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-charge2';
+import {Shootout} from './shootout.js?v=20261114-charge2';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-charge2';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-charge2';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -504,12 +504,13 @@ export class Match {
   strike(p,type,power=.35,aim=null,preferredTarget=null,shotStyle='auto') {
     const s=this.attackSign(p.team),b=this.ball;b.shotFlight=null;b.flightDrag=null;b.curlX=b.curlZ=b.curveRemaining=0;
     this.offsideSnapshot(p.team,p.id);this.lastKick={type,team:p.team,isShot:type==='shoot'};if(['pass','through','cross','loft'].includes(type))for(const q of this.players)if(q.team!==p.team&&q.index>0)q.ballReactionUntil=this.controlTime+.1+Math.min(.07,distance(q,b)/200);
-    let tx=s*53.5,tz=0,speed=33,loft=2.6,kickFlight=0;
+    let tx=s*53.5,tz=0,speed=33,loft=2.6,kickFlight=0,shotBoost=1;
     if(['pass','through','cross','loft'].includes(type)){
       const target=preferredTarget&&!preferredTarget.sentOff&&preferredTarget.team===p.team?preferredTarget:type==='cross'?this.crossTarget(p,power,aim):type==='through'?this.throughTarget(p,power,aim):this.passTarget(p,power,aim);
       if(target){
         // Variants: pass lead(Q+S)/flair(C+S)/curl(Z+S) · through lob(Q+W)/driven(Z+W) · cross early(Q+A)/low(AAA)/ground(AA)/curl(Z+A).
-        const groundCross=type==='cross'&&shotStyle==='ground',lobThrough=type==='through'&&shotStyle==='lob',d=distance(p,target),airPass=type==='cross'&&!groundCross||type==='loft'||lobThrough;const passSkill=traits(p).passing;let flight=airPass?clamp(d/(24-power*5),1.05,1.9):clamp(.24+d*.026,.34,1.35)/passSkill;
+        const groundCross=type==='cross'&&shotStyle==='ground',lobThrough=type==='through'&&shotStyle==='lob',d=distance(p,target),airPass=type==='cross'&&!groundCross||type==='loft'||lobThrough;// Human ground passes follow the charge: a tap rolls gently, a full bar is driven hard.
+        const humanKick=p.id===this.selected&&this.mode==='player'&&p.team===0,charge=humanKick?.6+.6*power:1,passSkill=traits(p).passing*charge;let flight=airPass?clamp(d/(24-power*5),1.05,1.9):clamp(.24+d*.026,.34,1.35)/passSkill;
         let lead=type==='through'?1.05:type==='cross'?.35:shotStyle==='lead'?1.15:.48;
         tx=clamp(target.x+target.vx*flight*lead+(type==='through'?s*(4+power*7):type==='pass'&&shotStyle==='lead'?s*(3+power*4):0),-49,49);
         tz=clamp(target.z+target.vz*flight*lead,-30,30);
@@ -517,7 +518,7 @@ export class Match {
         kickFlight=flight;
         let throughPlan=null;if(type==='through'){throughPlan=this.throughSpace(p,target,power,aim);tx=throughPlan.x;tz=throughPlan.z;this.receiveGate=throughPlan.gate;
           // Snappier through ball: struck harder and slowed by more grass drag, so it still arrives as the runner gets there.
-          throughPlan={...throughPlan,drag:clamp(throughPlan.drag*1.5,.75,1.7)};}
+          const human=p.id===this.selected&&this.mode==='player'&&p.team===0;throughPlan={...throughPlan,drag:human?clamp(throughPlan.drag*(1+.6*power),.45,1.7):clamp(throughPlan.drag*1.5,.75,1.7)};}
         const distanceToTarget=Math.hypot(tx-b.x,tz-b.z),drag=airPass?.12:type==='through'?throughPlan.drag:.32;
         if(type==='through'){flight=throughPlan.flight*.9/passSkill;if(lobThrough){tx=clamp(tx+s*2,-49,49);flight=clamp(Math.hypot(tx-b.x,tz-b.z)/17,1.1,1.8);}else if(shotStyle==='driven')flight*=.75;}
         if(type==='pass'&&shotStyle==='drive')flight*=.68;
@@ -544,7 +545,7 @@ export class Match {
       const side=keeper.z+keeper.vz*.12>=0?-1:1;
       tz=this.setPieceContext?this.setPieceContext.aimZ:!human&&Number.isFinite(p.aiShotAimZ)?p.aiShotAimZ:human&&Math.abs(inputZ)>.2?inputZ*3.05:side*(distanceToGoal<14?2.45:2.7)+Math.sin(this.time*1.7+p.id)*.22;
       keeper.reaction=clamp((distance(p,keeper)<14?.07:.16)+(Math.abs(keeper.vz)>2?.04:0)+(keeper.decision>0?.04:0)+(human?.05:0)+Math.sin(this.time*.71+p.id)*.035,.055,.28);// Long-shot trait: from distance a good striker hits harder and the keeper reacts later; a poor one is weaker.
-      const ls=traits(p).longShot,far=clamp((distanceToGoal-16)/14,0,1);keeper.reaction=clamp(keeper.reaction+(ls-1)*far*.16,.04,.36);
+      const ls=traits(p).longShot,far=clamp((distanceToGoal-16)/14,0,1);shotBoost=1+(ls-1)*far*.3;keeper.reaction=clamp(keeper.reaction+(ls-1)*far*.16,.04,.36);
       speed=clamp((27+power*11+Math.abs(tx-p.x)*.05)*(1+(ls-1)*far*.45),27,44);const flight=Math.hypot(tx-b.x,tz-b.z)/speed;loft=clamp(((human?1.15:.6)-b.y+(4.905*FIELD_GRAVITY)*flight*flight)/Math.max(.12,flight),.45,6.8);
       this.stats.shots[p.team]++;this.receiver=-1;p.aiShotAimZ=null;
     }
@@ -554,7 +555,7 @@ export class Match {
     Object.assign(b,{vx:dx/len*speed,vz:dz/len*speed,vy:loft});
     // Curl (Z + S / Z + A): constant side spin, with the launch angled out so the ball still arrives on target.
     if((shotStyle==='curl'||shotStyle==='flair')&&['pass','cross'].includes(type)&&kickFlight>0){const k=b.flightDrag&&b.y<=.38?b.flightDrag:.12,a=type==='cross'?5.5:shotStyle==='flair'?3.6:4.2,side=(p.z>=0?-1:1)*(shotStyle==='flair'?-1:1),nx=-dz/len*side,nz=dx/len*side,v0=a/k-a*kickFlight/(1-Math.exp(-k*kickFlight));b.vx+=nx*v0;b.vz+=nz*v0;b.curlX=nx*a;b.curlZ=nz*a;b.curveRemaining=kickFlight;}
-    if(type==='shoot')Object.assign(b,planShot(b,{x:tx,z:tz},{power,human:p.id===this.selected&&this.mode==='player',side:p.z>=0?-1:1,style:shotStyle}));
+    if(type==='shoot')Object.assign(b,planShot(b,{x:tx,z:tz},{power,human:p.id===this.selected&&this.mode==='player',side:p.z>=0?-1:1,style:shotStyle,boost:shotBoost}));
     // 깔아차기 (D, D): keep the shot on the turf instead of the planned arc.
     if(type==='shoot'&&shotStyle==='low'){b.y=.34;b.vy=0;b.shotFlight=null;b.flightDrag=.2;b.vx*=1.06;b.vz*=1.06;}
     p.holdingBall=false;this.owner=-1;this.lastTouch=p.id;this.noCatch=['pass','through','cross','loft'].includes(type)?.14:.22;this.possessionTime=0;p.kickAnim=.28;p.kickStyle=type;p.decision=.55;

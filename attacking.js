@@ -1,5 +1,5 @@
-import {variation} from './match-variation.js?v=20261112-20-release';
-import {passSafety,tacticValue} from './tactics.js?v=20261112-20-release';
+import {variation} from './match-variation.js?v=20261114-charge2';
+import {passSafety,tacticValue} from './tactics.js?v=20261114-charge2';
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function attackPlan(match,carrier){

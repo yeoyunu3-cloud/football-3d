@@ -1,4 +1,4 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-field';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-charge2';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function shotOffset(flight,elapsed){
   if(!flight)return {x:0,z:0,y:0,vx:0,vz:0,vy:0};
@@ -26,9 +26,11 @@ export function forecastBall(ball,t){
   const f=ball.shotFlight,old=shotOffset(f,f?.elapsed??0),next=shotOffset(f,(f?.elapsed??0)+t),drag=ball.y>.38||ball.vy>0?.12:(ball.flightDrag??.62),travel=(1-Math.exp(-drag*t))/drag,offset=(t-travel)/drag;
   return {x:ball.x+(ball.vx-old.vx)*travel+(ball.curveRemaining>0?(ball.curlX??0)*offset:0)+next.x-old.x,z:ball.z+(ball.vz-old.vz)*travel+(ball.curveRemaining>0?(ball.curlZ??0)*offset:0)+next.z-old.z,y:Math.max(.34,ball.y+(ball.vy-old.vy)*t-(4.905*FIELD_GRAVITY)*t*t+next.y-old.y)};
 }
-export function planShot(start,end,{power=.5,human=false,side=1,style='auto'}={}){
+export function planShot(start,end,{power=.5,human=false,side=1,style='auto',boost=1}={}){
   const dx=end.x-start.x,dz=end.z-start.z,d=Math.hypot(dx,dz),type=style==='finesse'||style==='rabona'?'curl':style==='power'?'power':style==='chip'?'chip':style==='low'?'driven':d>22?(power<.5?'curl':power>.78?'knuckle':'dip'):power>.82?'power':'driven';
-  const speed=style==='rabona'?26+power*6:type==='power'?39+power*11:type==='chip'?20+power*7:style==='finesse'?28+power*7:31+power*10+(d>23?3:0),duration=-Math.log(Math.max(.05,1-.12*d/speed))/.12,travel=(1-Math.exp(-.12*duration))/.12;
+  // Human shots follow the charge bar closely: a tap is a soft side-foot, a full bar is a rocket.
+  const base=human?(style==='rabona'?18+power*14:type==='power'?28+power*22:type==='chip'?15+power*12:style==='finesse'?19+power*16:19+power*23+(d>23?2:0)):(style==='rabona'?26+power*6:type==='power'?39+power*11:type==='chip'?20+power*7:style==='finesse'?28+power*7:31+power*10+(d>23?3:0));
+  const speed=Math.max(base*boost,.12*d+4),duration=-Math.log(Math.max(.05,1-.12*d/speed))/.12,travel=(1-Math.exp(-.12*duration))/.12;
   const height=style==='low'?.42:style==='rabona'?1.3:type==='chip'?1.55:type==='power'?1.25+power*.65:style==='finesse'?1.5:d>22?(human?1.35:1.05):human?1.05+power*.7:.8+power*.5;
   const amplitude=type==='curl'?Math.min(style==='finesse'?2.7:style==='rabona'?2.2:1.8,d*(style==='finesse'||style==='rabona'?.065:.045)):type==='knuckle'?.32:type==='power'?.18:type==='chip'?Math.min(3.2,1.7+d*.035):type==='dip'?.55:0;
   return {vx:dx/travel,vz:dz/travel,vy:(height-start.y+(4.905*FIELD_GRAVITY)*duration**2)/duration,shotFlight:{type,duration,elapsed:0,nx:-dz/(d||1)*(style==='rabona'?-side:side),nz:dx/(d||1)*(style==='rabona'?-side:side),amplitude}};
