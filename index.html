@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0c171b"><title>축구 3D</title><link rel="stylesheet" href="./style.css?v=20261112-20-release"><link rel="stylesheet" href="./visual-refresh.css?v=20261113-gk"></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0c171b"><title>축구 3D</title><link rel="stylesheet" href="./style.css?v=20261112-20-release"><link rel="stylesheet" href="./visual-refresh.css?v=20261114-acro"></head>
 <body>
 <div id="scene" aria-label="3D 축구 경기장"></div>
 <main>
@@ -19,9 +19,9 @@
 <button id="roster-toggle" class="roster-toggle" aria-expanded="false">선수·기록</button><aside id="match-sidebar" class="match-sidebar" hidden><div class="sidebar-tabs"><button id="side-players" aria-pressed="true">명단</button><button id="side-events" aria-pressed="false">경기 기록</button></div><div id="sidebar-roster"><select id="roster-team" aria-label="명단 팀"><option value="0">홈 팀</option><option value="1">원정 팀</option></select><div id="roster-content"></div></div><ol id="live-events" hidden></ol></aside>
 <section class="player-card" aria-label="조작 중인 선수"><span class="shirt-number" id="number">10</span><div><small><span id="position">ST</span></small><b id="player-name">한도윤</b><span class="stamina"><i id="stamina"></i></span></div></section>
 <section class="minimap"><canvas id="map" width="252" height="164" aria-label="선수 위치 지도"></canvas></section>
-<div class="controls-hint"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동</span><span><kbd>Shift</kbd> 달리기</span><span><kbd>Q</kbd> 선수 전환</span><span><kbd>Space</kbd> 슛</span><span><kbd>E</kbd> 패스</span><span><kbd>R</kbd> 스루패스</span><span><kbd>X</kbd> 크로스</span><span><kbd>Esc</kbd> 메뉴</span></div>
+<div class="controls-hint" id="controls-hint"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동</span><span><kbd>Shift</kbd> 달리기</span><span><kbd>Q</kbd> 선수 전환</span><span><kbd>Space</kbd> 슛</span><span><kbd>E</kbd> 패스</span><span><kbd>R</kbd> 스루패스</span><span><kbd>X</kbd> 크로스</span><span><kbd>Esc</kbd> 메뉴</span></div>
 <div class="touch-controls" id="touch"><div id="joystick" aria-label="선수 이동 조이스틱"><span id="stick"></span></div><div class="touch-actions"><button id="switch">선수<br>전환</button><button id="pass">패스</button><button id="sprint">달리기</button><button id="shoot">슛·헤딩</button><button id="through">스루패스</button><button id="cross">크로스</button><button id="shot-style">일반 슛</button><button id="keeper-drop" hidden>공 놓기</button><button id="cancel-kick" hidden>동작 취소</button></div></div>
-<footer><span id="attack-direction">홈 팀 → 오른쪽 골대</span><div class="match-menu-actions"><button id="match-menu">메뉴 <kbd>Esc</kbd></button></div></footer>
+<footer><span id="attack-direction">홈 팀 → 오른쪽 골대</span><div class="match-menu-actions"><button id="controls-toggle" aria-expanded="false" aria-controls="controls-hint">조작법 <kbd>H</kbd></button><button id="match-menu">메뉴 <kbd>Esc</kbd></button></div></footer>
 </main>
 <dialog id="exit-dialog" aria-labelledby="exit-title"><h2 id="exit-title">경기 메뉴</h2><p id="exit-online-note" hidden>온라인 경기는 메뉴를 열어도 계속 진행됩니다.</p><div class="result-actions"><button id="resume-match" class="primary">계속하기</button><button id="quit-match">경기 종료 · 홈 화면</button></div></dialog>
 <dialog id="notice-dialog" aria-labelledby="notice-title"><h2 id="notice-title"></h2><p id="notice-message"></p><div class="notice-actions"><button id="notice-cancel" hidden>취소</button><button id="notice-ok" class="primary">확인</button></div></dialog>
@@ -57,5 +57,5 @@
 </form></section>
 <section class="formation-panel"><div class="panel-heading"><h2>포메이션</h2><select id="home-formation" aria-label="홈 포메이션"><option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option><option>3-5-2</option><option value="custom">자유 배치</option></select></div><div id="formation-pitch" aria-label="초기 선수 배치"><span class="pitch-goal"></span><span class="pitch-box"></span><span class="pitch-center"></span></div><p>드래그 / 방향키로 배치 · 공격 →</p></section>
 </div><section id="history-room" class="history-room" hidden><div class="history-heading"><h2>경기 기록</h2><button id="reset-history">경기 기록 초기화</button></div><p>이 브라우저의 최근 50경기</p><div id="history-list"></div></section></section>
-<script type="module" src="./game.js?v=20261114-online4"></script>
+<script type="module" src="./game.js?v=20261114-acro"></script>
 </body></html>

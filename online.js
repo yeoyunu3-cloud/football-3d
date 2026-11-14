@@ -21,13 +21,17 @@ function loadPeer(){
   return peerScript;
 }
 
-export function createOnline({match,getClub,launch,onStatus,onClosed}){
+import {createLobby} from './lobby.js?v=20261114-acro';
+export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onLobbyState}){
+  const lobby=createLobby({onRooms,onState:onLobbyState});
+  const listed=()=>state.room&&!isLocalRoom(state.room);
+  const announce=status=>{if(listed())lobby.announce({name:state.room,locked:Boolean(state.password),status,team:getClub()?.name});};
   const state={role:null,peer:null,conn:null,room:'',password:'',timer:null,lastInput:0,sentInput:'',lastSeen:0};
   const status=(text,kind='info')=>onStatus?.(text,kind);
   const send=message=>{if(state.conn?.open)state.conn.send(message);};
   function close(reason=''){
     clearInterval(state.timer);state.timer=null;try{state.conn?.close();}catch{}try{state.peer?.destroy();}catch{}
-    const role=state.role;state.role=null;state.conn=null;state.peer=null;
+    const role=state.role;if(role==='host'||role==='host-waiting')lobby.withdraw(state.room);state.role=null;state.conn=null;state.peer=null;
     if(role==='host')match.setRemote(false);
     if(reason)onClosed?.(reason,role);
   }
@@ -40,7 +44,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed}){
           if(message?.t==='hello'){
             if(state.conn&&state.conn!==conn){conn.send({t:'reject',reason:'방이 가득 찼습니다.'});if(!conn.local)setTimeout(()=>conn.close(),300);return;}
             if(state.password&&message.password!==state.password){conn.send({t:'reject',reason:'비밀번호가 틀렸습니다.'});if(!conn.local)setTimeout(()=>conn.close(),300);return;}
-            state.conn=conn;state.role='host';conn.send({t:'welcome',club:getClub()});
+            state.conn=conn;state.role='host';conn.send({t:'welcome',club:getClub()});announce('playing');
             conn.on('close',()=>close('상대가 나갔습니다. 남은 경기는 AI가 상대합니다.'));
             match.setRemote(true);launch('host',getClub(),message.club);match.setRemote(true);
             state.lastSeen=performance.now();clearInterval(state.timer);state.timer=setInterval(()=>{
@@ -60,7 +64,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed}){
       };
       if(isLocalRoom(name)){state.role='host-waiting';state.peer={destroy(){}};accept(localConn(name,'host'));status(`방 "${state.room}" 을 만들었습니다 (같은 컴퓨터 테스트용). 상대를 기다리는 중…`,'wait');resolve();return;}
       const peer=new window.Peer(roomId(name));state.peer=peer;state.role='host-waiting';
-      peer.on('open',()=>{status(`방 "${state.room}" 을 만들었습니다. 상대를 기다리는 중…`,'wait');resolve();});
+      peer.on('open',()=>{status(`방 "${state.room}" 을 만들었습니다. 상대를 기다리는 중…`,'wait');announce('waiting');resolve();});
       peer.on('error',error=>{const taken=error.type==='unavailable-id';close();reject(new Error(taken?'같은 이름의 방이 이미 있습니다. 다른 이름을 쓰세요.':`방을 만들지 못했습니다 (${error.type??'오류'}).`));});
       peer.on('connection',accept);
     });
@@ -106,5 +110,5 @@ export function createOnline({match,getClub,launch,onStatus,onClosed}){
     match.fakeKick=variant=>{if(!match.charge)return false;match.charge=null;send({t:'sk',name:variant??'fakeCut',side:-match.input.z*match.attackSign(1)>=0?1:-1});return true;};
     for(const name of ['callRun','openRunMenu','knockOn','callDefensiveHelp','wallJump','dropKeeperBall','skipCelebration','start','togglePause'])match[name]=()=>false;
   }
-  return {createRoom,joinRoom,close,get role(){return state.role;},get room(){return state.room;},get active(){return state.role==='host'||state.role==='guest';},get isGuest(){return state.role==='guest';}};
+  return {createRoom,joinRoom,close,async openLobby(){try{await loadPeer();lobby.start();}catch(error){onLobbyState?.('unavailable');}},refreshLobby(){lobby.refresh();},get role(){return state.role;},get room(){return state.room;},get active(){return state.role==='host'||state.role==='guest';},get isGuest(){return state.role==='guest';}};
 }

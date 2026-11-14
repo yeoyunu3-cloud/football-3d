@@ -1,26 +1,26 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-online4';
-import {fillEventRow} from './event-format.js?v=20261114-online4';
-import {createOnline,validRoomName} from './online.js?v=20261114-online4';
-import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-online4';
-import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-online4';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-online4';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-online4';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-online4';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-online4';
-import {paintKit} from './kit-art.js?v=20261114-online4';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-online4';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-online4';
-import {netOffset} from './goal-effects.js?v=20261114-online4';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-online4';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-acro';
+import {fillEventRow} from './event-format.js?v=20261114-acro';
+import {createOnline,validRoomName} from './online.js?v=20261114-acro';
+import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-acro';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-acro';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-acro';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-acro';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-acro';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-acro';
+import {paintKit} from './kit-art.js?v=20261114-acro';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-acro';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-acro';
+import {netOffset} from './goal-effects.js?v=20261114-acro';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-acro';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-online4';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-online4';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-online4';
-import { saveMatch } from './squads.js?v=20261114-online4';
-import { notify,textNode } from './ui.js?v=20261114-online4';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-online4';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-online4';
-import { keeperPose } from './keeper.js?v=20261114-online4';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-acro';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-acro';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-acro';
+import { saveMatch } from './squads.js?v=20261114-acro';
+import { notify,textNode } from './ui.js?v=20261114-acro';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-acro';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-acro';
+import { keeperPose } from './keeper.js?v=20261114-acro';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -281,8 +281,8 @@ function updateBallSound(dt){
   else if(owner>=0&&owner!==s.owner){playTrap(Math.min(1,.3+Math.hypot(b.vx,b.vz)/20));s.carry=0;}
   else if(owner<0&&s.owner>=0&&match.lastTouch===s.owner)playTouch(.8);
   else if(owner<0&&s.owner<0&&match.lastTouch!==s.lastTouch)playTouch(.7);
-  if(owner>=0){const p=match.players[owner],speed=Math.hypot(p.vx,p.vz),stride=speed>8.5?2.6:1.8;
-    if(p.holdingBall)s.carry=0;else{s.carry+=speed*dt;if(speed>1&&s.carry>=stride){s.carry-=stride;playTouch(owner===match.selected?Math.min(1,.25+speed/14):.12);}}}
+  // One touch sound per dribble touch from the engine (see Match.integrateBall).
+  if(owner>=0){const p=match.players[owner],speed=Math.hypot(p.vx,p.vz);if(!p.holdingBall&&(p.touches??0)!==s.touches&&s.owner===owner)playTouch(owner===match.selected?Math.min(1,.25+speed/14):.12);s.touches=p.touches??0;}
   s.owner=owner;s.kick=match.lastKick;s.lastTouch=match.lastTouch;
 }
 const physicalKeys={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyQ:'q',KeyE:'e',KeyR:'r',KeyX:'x',KeyZ:'z',KeyC:'c',KeyF:'f',Digit1:'1',Digit2:'2',Digit3:'3',Digit4:'4',Space:' ',ShiftLeft:'shift',ShiftRight:'shift',ControlLeft:'control',ControlRight:'control',Backquote:'`'};
@@ -330,6 +330,7 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Escape'){e.preventDefault();if(!e.repeat){if(exitDialog.open)closeExitMenu();else openExitMenu();}return;}
   if(exitDialog.open||['SELECT','INPUT','TEXTAREA'].includes(e.target.tagName))return;
   const key=inputKey(e);
+  if(key==='h'&&!e.repeat){toggleControls();e.preventDefault();return;}
   if(key==='s'&&!e.repeat&&match.skipCelebration()){e.preventDefault();return;}
   if(key===controls().shoot&&!e.repeat&&match.wallJump()){e.preventDefault();return;}
   if(match.mode==='manager')return;
@@ -376,7 +377,8 @@ function sampleInput(){
   match.setInput(input.x+joy.x,input.z+joy.y,input.sprint||touchSprint);
 }
 const focus=new THREE.Vector3(),cameraTarget=new THREE.Vector3(),cameraPosition=new THREE.Vector3();
-let setPieceView=null;
+let setPieceView=null,frameDistance=40;
+const clamp01=v=>Math.max(0,Math.min(1,v)),smooth01=v=>{v=clamp01(v);return v*v*(3-2*v);};
 function cameraUpdate(dt,immediate=false){
   if(drawing&&!immediate)return;
   const replay=match.phase==='replay',p=replay?match.ball:match.players[match.goalWait>0?match.celebratingPlayer:match.selected],b=match.goalWait>0&&match.goalNet?.elapsed>.9?p:match.ball;
@@ -399,8 +401,16 @@ function cameraUpdate(dt,immediate=false){
   cameraTarget.copy(focus);if(match.mode==='player'&&!r&&match.goalWait<=0)cameraTarget.y=1;
   const narrow=camera.aspect<.8;
   const direct=(match.mode==='player'||replay)&&!r;
-  // Mid-height broadcast view in player mode: about half the pitch width in frame, ~30° down.
-  cameraPosition.set(focus.x,narrow?36:direct?23:43,focus.z+(narrow?38:direct?33:25));
+  // Broadcast view that frames the play: it zooms out until the players around the ball (the ten nearest,
+  // both teams) fit on screen with a margin, and eases back in when the play is tight. ~35° down.
+  if(direct){
+    const near=match.players.filter(q=>!q.sentOff&&q.index>0).sort((a,c)=>Math.hypot(a.x-b.x,a.z-b.z)-Math.hypot(c.x-b.x,c.z-b.z)).slice(0,10);
+    const halfWidth=Math.max(...near.map(q=>Math.abs(q.x*FIELD_SCALE-focus.x)))+6,depth=Math.max(...near.map(q=>Math.abs(q.z*FIELD_SCALE-focus.z)))+5;
+    const hFov=2*Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect),want=Math.max(halfWidth/Math.tan(hFov/2),depth*1.9);
+    frameDistance+=(THREE.MathUtils.clamp(want,narrow?46:38,narrow?70:60)-frameDistance)*(immediate?1:1-Math.exp(-dt*1.4));
+  }
+  const fd=frameDistance,sinA=.57,cosA=.82;
+  cameraPosition.set(focus.x,narrow?36:direct?fd*sinA:43,focus.z+(narrow?38:direct?fd*cosA:25));
   // Replay: a lower, closer angle that tracks the ball.
   if(replay)cameraPosition.set(focus.x,narrow?24:13,focus.z+(narrow?30:22));
   if(match.goalWait>0)cameraPosition.set(focus.x,28,focus.z+20);
@@ -540,17 +550,29 @@ function frame(now){
       if(!visual.realistic)g.position.y+=pose.bob;g.rotation.x=visual.realistic?Math.min(.07,speed*.007):pose.lean;g.rotation.z=pose.roll+(p.jostle??0)*.12+Math.sin((p.feint??0)*20)*Math.min(.18,p.feint??0);visual.body.rotation.y=pose.twist;
       visual.legs.forEach((leg,i)=>{leg.rotation.x=dampJoint(leg.rotation.x,pose.hips[i],dt);visual.knees[i].rotation.x=pose.knees[i];visual.elbows[i].rotation.x=pose.elbows[i];});
       const swing=Math.sin(p.stride)*Math.min(.65,speed*.08);
-      if(p.aerial){const phase=p.aerial.elapsed/p.aerial.duration,arc=Math.sin(phase*Math.PI),style=p.aerial.style??'header';
+      if(p.aerial){const phase=clamp01(p.aerial.elapsed/p.aerial.duration),arc=Math.sin(phase*Math.PI),style=p.aerial.style??'header';
+        // Acrobatic finishes in phases timed in seconds so the strike lands when the ball arrives (~0.28 s after
+        // the jump starts): set → take-off → strike → fall → land on the back/side → get up. Every curve starts
+        // and ends at rest, so the move blends in and out of the run cycle without snapping.
+        const T=p.aerial.elapsed,ss=(a,b)=>smooth01((T-a)/(b-a)),bell=(a,m,b)=>T<m?ss(a,m):1-ss(m,b);
         if(style==='bicycle'){
-          // Back to goal, body thrown flat, one leg scissoring over the head.
-          g.rotation.y=visual.renderHeading+Math.PI;g.rotation.x=-arc*1.5;g.position.y+=arc*.25;const kick=Math.sin(Math.min(1,phase*1.9)*Math.PI);visual.legs[0].rotation.x=-1.9*kick;visual.legs[1].rotation.x=-.7+.9*kick;visual.knees[0].rotation.x=.25;visual.knees[1].rotation.x=1.1*(1-kick);
+          const crouch=bell(0,.06,.14),tilt=ss(.05,.26)*(1-ss(.85,1.2)),kick=bell(.12,.28,.44),swap=ss(.12,.28),lie=bell(.4,.62,1.2);
+          g.rotation.y=visual.renderHeading+Math.PI*ss(0,.14);g.rotation.x=-1.45*tilt;g.position.y+=-.16*crouch+.25*bell(.1,.3,.5)-.5*lie*tilt;
+          visual.legs[0].rotation.x=-.3*crouch-2.1*kick+.4*swap*(1-kick)*(1-lie);visual.legs[1].rotation.x=.25*crouch-.9*bell(.06,.18,.3)+.5*swap*lie;
+          visual.knees[0].rotation.x=.7*crouch+.2*kick;visual.knees[1].rotation.x=.7*crouch+1.2*bell(.06,.18,.34);
+          visual.arms.forEach((arm,i)=>{arm.rotation.x=-.4*crouch+(-1.1+.4*i)*tilt;arm.rotation.z=(i?-1:1)*(.3+1.1*tilt);});
         }else if(style==='scissor'){
-          // Side-on in the air, the striking leg swung across at chest height.
-          g.rotation.z=arc*1.25;g.rotation.x=-arc*.25;const kick=Math.sin(Math.min(1,phase*1.9)*Math.PI);visual.legs[0].rotation.x=-1.5*kick;visual.legs[1].rotation.x=.5*kick;visual.knees[1].rotation.x=.9*kick;
+          const crouch=bell(0,.06,.14),side=ss(.05,.24)*(1-ss(.75,1.05)),kick=bell(.12,.28,.44),lie=bell(.38,.58,1.05);
+          g.rotation.z=1.3*side;g.rotation.x=-.25*side;g.position.y+=-.14*crouch+.18*bell(.1,.28,.48)-.38*lie*side;
+          visual.legs[0].rotation.x=-.25*crouch-1.7*kick;visual.legs[1].rotation.x=.2*crouch+.6*kick-.5*bell(.04,.16,.28);visual.knees[0].rotation.x=.6*crouch+.15*kick;visual.knees[1].rotation.x=.6*crouch+.9*kick;
+          visual.arms.forEach((arm,i)=>{arm.rotation.x=-.3*crouch-.6*side;arm.rotation.z=(i?-1:1)*(.3+.9*side);});
         }else if(style==='volley'){
-          g.rotation.x=arc*.22;g.rotation.z=arc*.2;const kick=Math.sin(Math.min(1,phase*2.2)*Math.PI);visual.legs[0].rotation.x=-1.25*kick;visual.knees[0].rotation.x=.5*(1-kick);
+          const plant=bell(0,.12,.26),kick=bell(.12,.28,.46),follow=bell(.28,.42,.62);
+          g.rotation.x=.12*plant+.22*kick;g.rotation.z=.18*kick;g.position.y+=-.08*plant;
+          visual.legs[0].rotation.x=.45*plant-1.35*kick-.3*follow;visual.knees[0].rotation.x=.9*plant+.2*(1-kick);visual.legs[1].rotation.x=-.15*kick;visual.knees[1].rotation.x=.35*plant;
+          visual.arms.forEach((arm,i)=>{arm.rotation.z=(i?-1:1)*(.25+.9*kick);});
         }else g.rotation.x=-arc*.28;}
-      visual.arms.forEach((arm,j)=>{arm.rotation.x=dampJoint(arm.rotation.x,pose.arms[j],dt);arm.rotation.z=(j===0?1:-1)*(p.throwAnim>0?2.8:p.aerial?.75:.08);});
+      if(!p.aerial||(p.aerial.style??'header')==='header')visual.arms.forEach((arm,j)=>{arm.rotation.x=dampJoint(arm.rotation.x,pose.arms[j],dt);arm.rotation.z=(j===0?1:-1)*(p.throwAnim>0?2.8:p.aerial?.75:.08);});
       if(p.throwAnim>0){const phase=match.throwState?.taker===p.id?match.throwState.elapsed/.65:1;visual.arms.forEach(arm=>arm.rotation.x=-.35-phase*.55);}
       if(p.index===0&&speed<1.1&&match.owner!==p.id){const breathe=Math.sin(match.controlTime*2.3+p.id)*.025;g.position.y+=breathe;visual.knees.forEach(knee=>knee.rotation.x=.22);visual.legs.forEach(leg=>leg.rotation.x=-.1);visual.arms.forEach((arm,i)=>{arm.rotation.x=-.32+breathe;arm.rotation.z=i?.32:-.32;});}
       if(p.celebration>0)applyCelebrationRig(visual,p);
@@ -584,14 +606,26 @@ clubHome=initHome({match,preview(profile,index,kit){if(previewPlayer.index!==ind
 // ---- Online 1 vs 1: room dialog (create with a name + optional password, or join by name) ----
 const onlineDialog=document.createElement('dialog');onlineDialog.className='online-dialog';
 onlineDialog.innerHTML=`<form method="dialog" class="online-form"><h2>온라인 1vs1</h2><p class="online-note">방을 만든 사람이 홈 팀, 들어온 사람이 원정 팀입니다. 서로의 브라우저가 직접 연결됩니다.</p>
+<section class="room-list-box"><div class="room-list-head"><b>방 목록</b><span id="lobby-state">연결 중…</span><button type="button" id="lobby-refresh" class="ghost small" aria-label="방 목록 새로고침">새로고침</button></div><ul id="room-list" class="room-list" aria-live="polite"></ul></section>
 <label>방 이름<input id="online-room" maxlength="20" autocomplete="off" placeholder="예: myroom12" required></label>
 <label>비밀번호 <small>(선택 — 넣으면 비밀번호를 아는 사람만 입장)</small><input id="online-password" type="password" maxlength="30" autocomplete="off" placeholder="비워 두면 공개 방"></label>
 <p id="online-status" class="online-status" role="status"></p>
 <div class="online-actions"><button type="button" id="online-create">방 만들기</button><button type="button" id="online-join">방 참가</button><button type="button" id="online-cancel" class="ghost">닫기</button></div></form>`;
 document.body.append(onlineDialog);
-{const style=document.createElement('style');style.textContent='.online-dialog{border:1px solid #2c3948;border-radius:16px;background:#131b25;color:#eef2f6;padding:0;width:min(440px,92vw)}.online-dialog::backdrop{background:rgba(5,8,12,.72)}.online-form{display:grid;gap:14px;padding:24px}.online-form h2{margin:0;font-size:20px}.online-note{margin:0;color:#9fb0c3;font-size:13px;line-height:1.5}.online-form label{display:grid;gap:6px;font-size:13px;color:#c9d4e0}.online-form label small{color:#8395a8}.online-form input{padding:10px 12px;border-radius:9px;border:1px solid #33435a;background:#0d131b;color:#eef2f6;font-size:15px}.online-status{margin:0;min-height:20px;font-size:13px;color:#c5f773}.online-status[data-kind=error]{color:#ff8a7a}.online-status[data-kind=wait]{color:#ffe27a}.online-actions{display:flex;gap:8px;flex-wrap:wrap}.online-actions button{flex:1;padding:11px 12px;border-radius:9px;border:0;background:#c5f773;color:#10200a;font-weight:700;font-size:14px;cursor:pointer}.online-actions button.ghost{background:#263242;color:#dbe4ee;flex:0 0 auto}.online-actions button:disabled{opacity:.5;cursor:default}';document.head.append(style);}
+{const style=document.createElement('style');style.textContent='.online-dialog{border:1px solid #2c3948;border-radius:16px;background:#131b25;color:#eef2f6;padding:0;width:min(440px,92vw)}.online-dialog::backdrop{background:rgba(5,8,12,.72)}.online-form{display:grid;gap:14px;padding:24px}.online-form h2{margin:0;font-size:20px}.online-note{margin:0;color:#9fb0c3;font-size:13px;line-height:1.5}.online-form label{display:grid;gap:6px;font-size:13px;color:#c9d4e0}.online-form label small{color:#8395a8}.online-form input{padding:10px 12px;border-radius:9px;border:1px solid #33435a;background:#0d131b;color:#eef2f6;font-size:15px}.online-status{margin:0;min-height:20px;font-size:13px;color:#c5f773}.online-status[data-kind=error]{color:#ff8a7a}.online-status[data-kind=wait]{color:#ffe27a}.online-actions{display:flex;gap:8px;flex-wrap:wrap}.online-actions button{flex:1;padding:11px 12px;border-radius:9px;border:0;background:#c5f773;color:#10200a;font-weight:700;font-size:14px;cursor:pointer}.online-actions button.ghost{background:#263242;color:#dbe4ee;flex:0 0 auto}.online-actions button:disabled{opacity:.5;cursor:default}.room-list-box{display:grid;gap:8px;padding:12px;border-radius:12px;background:#0d131b;border:1px solid #233142}.room-list-head{display:flex;align-items:center;gap:8px;font-size:13px}.room-list-head span{flex:1;color:#8395a8;font-size:12px}.room-list-head .small{padding:5px 10px;border-radius:7px;border:0;background:#263242;color:#dbe4ee;font-size:12px;cursor:pointer}.room-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:210px;overflow:auto}.room-list li button{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid #2a384a;background:#16202c;color:#eef2f6;font-size:14px;text-align:left;cursor:pointer}.room-list li button:hover:not(:disabled){border-color:#c5f773}.room-list li button:disabled{opacity:.55;cursor:default}.room-list .room-name{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.room-list .room-team{color:#8fa1b5;font-size:12px;font-weight:400}.room-list .room-tag{font-size:11px;padding:3px 7px;border-radius:999px;background:#24331a;color:#c5f773;white-space:nowrap}.room-list .room-tag.playing{background:#3a2a1a;color:#ffc27a}.room-list .room-empty{padding:14px;text-align:center;color:#8395a8;font-size:13px}';document.head.append(style);}
 const onlineStatus=(text,kind='info')=>{$('online-status').textContent=text;$('online-status').dataset.kind=kind;};
-var online=createOnline({match,getClub:()=>sanitizeClub({...clubHome.club,name:clubHome.squadName??clubHome.club.name}),
+function renderRooms(rooms){
+  const host=$('room-list');host.replaceChildren();
+  if(!rooms.length){const li=document.createElement('li');li.className='room-empty';li.textContent='열린 방이 없습니다. 방을 만들어 보세요.';host.append(li);return;}
+  for(const room of rooms){const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.disabled=room.status==='playing';
+    const name=document.createElement('span');name.className='room-name';name.textContent=(room.locked?'🔒 ':'')+room.name;if(room.team){const t=document.createElement('span');t.className='room-team';t.textContent=` · ${room.team}`;name.append(t);}
+    const tag=document.createElement('span');tag.className='room-tag'+(room.status==='playing'?' playing':'');tag.textContent=room.status==='playing'?'경기 중':room.locked?'비밀번호':'참가 가능';
+    b.append(name,tag);b.onclick=()=>{$('online-room').value=room.name;if(room.locked){$('online-password').value='';$('online-password').focus();onlineStatus('비밀번호를 입력하고 방 참가를 누르세요.','wait');}else onlineAction('join');};
+    li.append(b);host.append(li);}
+}
+function toggleControls(force){const on=force??!document.body.classList.contains('show-controls');document.body.classList.toggle('show-controls',on);$('controls-toggle').setAttribute('aria-expanded',String(on));}
+$('controls-toggle').onclick=()=>toggleControls();
+var online=createOnline({match,onRooms:renderRooms,onLobbyState:state=>{$('lobby-state').textContent={directory:'연결됨',client:'연결됨',reconnecting:'다시 연결 중…',unavailable:'방 목록을 불러올 수 없습니다'}[state]??'';},getClub:()=>sanitizeClub({...clubHome.club,name:clubHome.squadName??clubHome.club.name}),
   launch(role,homeClub,awayClub){onlineDialog.close();applyClub(match,sanitizeClub(homeClub),0);clubHome.start('player',{opponent:sanitizeClub(awayClub)});},
   onStatus:onlineStatus,
   onClosed(reason,role){if(role==='guest'){alert(reason);location.reload();}else if(role==='host'){match.announce?.('info','온라인',reason,4);onlineStatus(reason,'error');}}});
@@ -602,7 +636,8 @@ async function onlineAction(kind){
   onlineBusy(true);onlineStatus(kind==='create'?'방을 만드는 중…':'방에 접속하는 중…','wait');
   try{if(kind==='create')await online.createRoom(room,password);else await online.joinRoom(room,password);}catch(error){onlineStatus(error.message,'error');onlineBusy(false);}
 }
-$('online-mode').onclick=()=>{onlineStatus('');onlineBusy(false);onlineDialog.showModal();};
+$('online-mode').onclick=()=>{onlineStatus('');onlineBusy(false);onlineDialog.showModal();online.openLobby();};
+$('lobby-refresh').onclick=()=>online.refreshLobby();renderRooms([]);
 $('online-create').onclick=()=>onlineAction('create');$('online-join').onclick=()=>onlineAction('join');
 $('online-cancel').onclick=()=>{if(online.role&&!online.active)online.close();onlineDialog.close();};
 match.learning=loadLearning(clubHome.storage);syncHUD();cameraUpdate(0,true);requestAnimationFrame(frame);

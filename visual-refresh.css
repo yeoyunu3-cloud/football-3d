@@ -40,3 +40,9 @@
 
 /* No text over the power gauge: the bar alone, like the game this layout is modelled on. */
 #power-label{display:none}
+
+/* Controls reference: hidden during play, opened on demand (H or the footer button) as a tidy panel. */
+.controls-hint{display:none!important}
+body.show-controls .controls-hint{display:grid!important;position:fixed;left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);z-index:40;width:min(760px,92vw);max-height:80vh;overflow:auto;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 14px;padding:22px 24px;border-radius:14px;background:rgba(12,18,26,.96);border:1px solid #2c3948;box-shadow:0 20px 60px #0009;font-size:13px;white-space:normal}
+body.show-controls .controls-hint .shot-controls{grid-column:1/-1;display:block;white-space:normal;line-height:1.7;color:#a9b8c8;font-size:12px;border-top:1px solid #ffffff14;padding-top:10px;margin-top:4px}
+#controls-toggle{margin-right:8px}

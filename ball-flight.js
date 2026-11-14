@@ -1,4 +1,4 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-online4';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-acro';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function shotOffset(flight,elapsed){
   if(!flight)return {x:0,z:0,y:0,vx:0,vz:0,vy:0};
@@ -14,17 +14,22 @@ export function shotOffset(flight,elapsed){
 export function flightStep(ball,dt){
   const f=ball.shotFlight,old=shotOffset(f,f?.elapsed??0);
   let vx=ball.vx-old.vx,vz=ball.vz-old.vz,vy=ball.vy-old.vy;
-  const air=ball.y>.38||ball.vy>0,drag=air?.12:(ball.flightDrag??.62),decay=Math.exp(-drag*dt),travel=(1-decay)/drag,offset=(dt-travel)/drag,cx=ball.curveRemaining>0?(ball.curlX??0):0,cz=ball.curveRemaining>0?(ball.curlZ??0):0;
+  const air=ball.y>.38||ball.vy>0,drag=air?.12:(ball.flightDrag??.4),decay=Math.exp(-drag*dt),travel=(1-decay)/drag,offset=(dt-travel)/drag,cx=ball.curveRemaining>0?(ball.curlX??0):0,cz=ball.curveRemaining>0?(ball.curlZ??0):0;
   ball.x+=vx*travel+cx*offset;ball.z+=vz*travel+cz*offset;ball.y+=vy*dt-(4.905*FIELD_GRAVITY)*dt*dt;
   vx=vx*decay+cx*travel;vz=vz*decay+cz*travel;vy-=(9.81*FIELD_GRAVITY)*dt;
   if(f){f.elapsed+=dt;const next=shotOffset(f,f.elapsed);ball.x+=next.x-old.x;ball.z+=next.z-old.z;ball.y+=next.y-old.y;vx+=next.vx;vz+=next.vz;vy+=next.vy;}
   Object.assign(ball,{vx,vz,vy});ball.curveRemaining=Math.max(0,(ball.curveRemaining??0)-dt);
   // Backspin (커맨더 lob through): the ball checks on its first bounce and holds up instead of running on.
-  if(ball.y<.34){ball.y=.34;ball.vy=vy<-1.2?-vy*.32:0;ball.shotFlight=null;if(ball.backspin){ball.backspin=false;ball.vx*=.45;ball.vz*=.45;ball.vy*=.5;ball.flightDrag=1.3;}}
+  // Rolling resistance: on the ground a slow ball loses speed at a near-constant rate and comes to rest,
+  // rather than creeping on forever under purely proportional drag.
+  if(!air){const sp=Math.hypot(ball.vx,ball.vz);if(sp<3.5){const next=Math.max(0,sp-1.4*dt);if(sp>0){ball.vx*=next/sp;ball.vz*=next/sp;}}}
+  // Bounce: grass gives back about half the vertical speed (less on hard landings) and skids off some of the
+  // horizontal speed; very small hops die out. Topspin from a dipping shot keeps more of its run.
+  if(ball.y<.34){const impact=-vy,e=impact>9?.5:impact>4?.55:.58,skid=impact>1.2?Math.max(.78,1-impact*.018):1;ball.y=.34;ball.vy=impact>1.2?impact*e:0;if(impact>1.2){ball.vx*=skid;ball.vz*=skid;}ball.shotFlight=null;if(ball.backspin){ball.backspin=false;ball.vx*=.45;ball.vz*=.45;ball.vy*=.5;ball.flightDrag=1.3;}}
   return ball;
 }
 export function forecastBall(ball,t){
-  const f=ball.shotFlight,old=shotOffset(f,f?.elapsed??0),next=shotOffset(f,(f?.elapsed??0)+t),drag=ball.y>.38||ball.vy>0?.12:(ball.flightDrag??.62),travel=(1-Math.exp(-drag*t))/drag,offset=(t-travel)/drag;
+  const f=ball.shotFlight,old=shotOffset(f,f?.elapsed??0),next=shotOffset(f,(f?.elapsed??0)+t),drag=ball.y>.38||ball.vy>0?.12:(ball.flightDrag??.4),travel=(1-Math.exp(-drag*t))/drag,offset=(t-travel)/drag;
   return {x:ball.x+(ball.vx-old.vx)*travel+(ball.curveRemaining>0?(ball.curlX??0)*offset:0)+next.x-old.x,z:ball.z+(ball.vz-old.vz)*travel+(ball.curveRemaining>0?(ball.curlZ??0)*offset:0)+next.z-old.z,y:Math.max(.34,ball.y+(ball.vy-old.vy)*t-(4.905*FIELD_GRAVITY)*t*t+next.y-old.y)};
 }
 export function planShot(start,end,{power=.5,human=false,side=1,style='auto',boost=1,laser=false}={}){

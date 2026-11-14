@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-online4';
-import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-online4';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-online4';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-online4';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-online4';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-online4';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-online4';
-import {shapeTarget} from './formation-shape.js?v=20261114-online4';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-online4';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-online4';
-import {planThroughPass} from './through-pass.js?v=20261114-online4';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-online4';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-online4';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-online4';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-online4';
-import {stepGoalBall} from './goal-effects.js?v=20261114-online4';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-online4';
-import {Shootout} from './shootout.js?v=20261114-online4';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-online4';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-online4';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-acro';
+import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-acro';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-acro';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-acro';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-acro';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-acro';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-acro';
+import {shapeTarget} from './formation-shape.js?v=20261114-acro';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-acro';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-acro';
+import {planThroughPass} from './through-pass.js?v=20261114-acro';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-acro';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-acro';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-acro';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-acro';
+import {stepGoalBall} from './goal-effects.js?v=20261114-acro';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-acro';
+import {Shootout} from './shootout.js?v=20261114-acro';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-acro';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-acro';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -773,14 +773,14 @@ export class Match {
     let style='header';
     if(kind==='shoot'){if(expected<1.3)style='volley';else if(acro&&expected<2.7&&(human||(this.random??Math.random)()<.6))style=expected>1.75?'bicycle':'scissor';}
     // Aerial players jump higher (target man ~1m, small speedster ~.77m).
-    p.aerial={kind,style,contactY:clamp(expected,.45,2.5),elapsed:0,duration:style==='bicycle'?.8:style==='scissor'?.72:.68,hit:false,maxJump:style==='volley'?.06:style==='bicycle'?clamp(expected-1.25,.5,1.25):style==='scissor'?clamp(expected-1,.3,.9):clamp(expected-head,.12,.55+.3*aerialOf(p))};p.jump=0;return true;
+    p.aerial={kind,style,contactY:clamp(expected,.45,2.5),elapsed:0,duration:style==='bicycle'?1.25:style==='scissor'?1.05:style==='volley'?.62:.68,hit:false,maxJump:style==='volley'?.06:style==='bicycle'?clamp(expected-1.25,.5,1.25):style==='scissor'?clamp(expected-1,.3,.9):clamp(expected-head,.12,.55+.3*aerialOf(p))};p.jump=0;return true;
   }
   updateAerials(dt){
     const b=this.ball;
     for(const p of this.players){
       if(p.sentOff||p.index===0)continue;
       p.headerCooldown=Math.max(0,(p.headerCooldown??0)-dt);p.trap=Math.max(0,(p.trap??0)-dt);p.controlCooldown=Math.max(0,(p.controlCooldown??0)-dt);
-      if(p.aerial){p.aerial.elapsed+=dt;p.jump=Math.sin(clamp(p.aerial.elapsed/p.aerial.duration,0,1)*Math.PI)*p.aerial.maxJump;
+      if(p.aerial){p.aerial.elapsed+=dt;const u=clamp(p.aerial.elapsed/p.aerial.duration,0,1),acro=p.aerial.style==='bicycle'||p.aerial.style==='scissor';p.jump=(acro?Math.sin(clamp((p.aerial.elapsed-.04)/.5,0,1)*Math.PI):Math.sin(u*Math.PI))*p.aerial.maxJump;
         if(p.aerial.elapsed>=p.aerial.duration){p.aerial=null;p.jump=0;p.headerCooldown=.55;}continue;
       }
       p.jump=0;
@@ -1051,10 +1051,14 @@ export class Match {
       const p=this.players[this.owner];
       if(p.skill&&!p.skill.released){const k=p.skill,o=k.ball,tx=p.x+k.fx*o.f+k.lx*o.l,tz=p.z+k.fz*o.f+k.lz*o.l,blend=Math.min(1,dt*22);b.x+=(tx-b.x)*blend;b.z+=(tz-b.z)*blend;b.y+=(.34+o.y-b.y)*blend;b.vx=p.vx;b.vz=p.vz;b.vy=0;this.checkBoundary(before);return;}
       if(p.index===0&&p.holdingBall){const hands=keeperContacts(p).hands,target={x:(hands[0].x+hands[1].x)/2,y:(hands[0].y+hands[1].y)/2,z:(hands[0].z+hands[1].z)/2};const d=Math.hypot(target.x-b.x,target.y-b.y,target.z-b.z),step=Math.min(1,12*dt/(d||1));b.x+=(target.x-b.x)*step;b.y+=(target.y-b.y)*step;b.z+=(target.z-b.z)*step;b.vx=b.vz=b.vy=0;return;}
-      const speed=Math.hypot(p.vx,p.vz),lead=.78+(speed>8?.32:0);
+      // Dribbling is a series of touches: each touch knocks the ball ahead (further at sprint speed), the ball
+      // rolls out and the player closes on it before the next touch. A far-ahead ball is easier to steal.
+      const speed=Math.hypot(p.vx,p.vz),close=hasTrait(p,'speedster')?.75:1,touchLen=(speed>8.5?2.7:1.9)*close;
+      p.touchRun=(p.touchRun??0)+speed*dt;if(p.touchRun>=touchLen||speed<.6&&p.touchRun>0){p.touchRun=speed<.6?0:p.touchRun-touchLen;if(speed>1)p.touches=(p.touches??0)+1;}
+      const phase=clamp(p.touchRun/touchLen,0,1),push=speed<1.2?0:clamp((speed-1.2)*.17,0,1.35)*close,lead=.62+push*(1-phase*.85);
       const tx=p.x+Math.sin(p.heading)*lead,tz=p.z+Math.cos(p.heading)*lead;
       const ease=1-Math.exp(-dt*30);
-      const d=Math.hypot(tx-b.x,tz-b.z),blend=Math.min(ease,(speed+10)*dt/(d||1)),ground=.34+Math.abs(Math.sin(p.stride*2))*Math.min(.045,speed*.006);
+      const d=Math.hypot(tx-b.x,tz-b.z),blend=Math.min(ease,(speed+16)*dt/(d||1)),ground=.34+Math.abs(Math.sin(p.stride*2))*Math.min(.045,speed*.006);
       b.vx=p.vx;b.vz=p.vz;b.x+=(tx-b.x)*blend;b.z+=(tz-b.z)*blend;b.y+=clamp(ground-b.y,-6*dt,6*dt);b.vy=0;
       this.checkBoundary(before);return;
     }
@@ -1080,9 +1084,17 @@ export class Match {
       const relative=Math.hypot(b.vx-candidate.vx*.45,b.vz-candidate.vz*.45),facing=-(b.vx*Math.sin(candidate.heading)+b.vz*Math.cos(candidate.heading))/(Math.hypot(b.vx,b.vz)||1),intended=this.receiver===candidate.id;
       const limit=29+(intended?6:0)+Math.max(0,facing)*2+candidate.stamina/100;
       const hard=relative>Math.min(intended?37:33,limit)||this.lastKick?.isShot&&relative>13;
-      if(hard){const speed=Math.hypot(b.vx,b.vz)||1,nx=(b.x-candidate.x),nz=(b.z-candidate.z),side=(nx*b.vz-nz*b.vx)>=0?1:-1;
-        const vx=b.vx*.48+candidate.vx*.2+(-b.vz/speed)*side*2.2,vz=b.vz*.48+candidate.vz*.2+(b.vx/speed)*side*2.2;
-        Object.assign(b,{vx,vz,vy:.6+relative*.025,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});candidate.controlCooldown=.32;candidate.trap=.08;this.lastTouch=candidate.id;this.noCatch=.2;this.receiver=-1;this.receiveAssist=0;
+      if(hard){
+        // Real deflection: the ball bounces off the body along the contact normal. The body is soft (restitution
+        // ~.3) and the glancing part of the velocity mostly survives, so a clipped shot still runs on while a
+        // square block knocks it back. Contact with the legs pops it up, the chest drops it.
+        // Contact point = where the ball's path this step came closest to the player, not where it ended up.
+        const sx=b.x-before.x,sz=b.z-before.z,sl=sx*sx+sz*sz||1,ct=clamp(((candidate.x-before.x)*sx+(candidate.z-before.z)*sz)/sl,0,1);
+        const rx=b.vx-candidate.vx,rz=b.vz-candidate.vz,dx=before.x+sx*ct-candidate.x,dz=before.z+sz*ct-candidate.z,dl=Math.hypot(dx,dz);
+        let nx=dl>.05?dx/dl:-rx/(Math.hypot(rx,rz)||1),nz=dl>.05?dz/dl:-rz/(Math.hypot(rx,rz)||1);const into=rx*nx+rz*nz;
+        if(into>0){nx=-nx;nz=-nz;}const vn=rx*nx+rz*nz,tx=rx-vn*nx,tz=rz-vn*nz,e=.3,grip=.82,rand=((this.random??Math.random)()-.5)*.25;
+        const vx=candidate.vx*.6+tx*grip-vn*e*nx+(-tz)*rand,vz=candidate.vz*.6+tz*grip-vn*e*nz+tx*rand,low=b.y<.9;
+        Object.assign(b,{vx,vz,vy:low?1.2+Math.abs(vn)*.09:.3,shotFlight:null,flightDrag:null,curlX:0,curlZ:0,curveRemaining:0});candidate.controlCooldown=.32;candidate.trap=.08;this.lastTouch=candidate.id;this.noCatch=.2;this.receiver=-1;this.receiveAssist=0;
         // Law 11: a deflection or block by an opponent does not reset offside; a deliberate (heavy) touch does,
         // and a touch by a teammate is a new moment the offside line is judged from.
         if(this.offside?.team===candidate.team)this.offsideSnapshot(candidate.team,candidate.id);else if(!this.lastKick?.isShot)this.offside=null;
