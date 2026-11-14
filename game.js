@@ -343,8 +343,9 @@ function cameraUpdate(dt,immediate=false){
   cameraTarget.copy(focus);
   const narrow=camera.aspect<.8;
   const direct=match.mode==='player'&&!r;
-  cameraPosition.set(focus.x,narrow?52:direct?32:35,focus.z+(narrow?49:direct?36:38));
-  if(match.goalWait>0)cameraPosition.set(focus.x,22,focus.z+22);
+  // Higher, steeper view so players don't hide behind each other.
+  cameraPosition.set(focus.x,narrow?60:direct?40:43,focus.z+(narrow?36:direct?23:25));
+  if(match.goalWait>0)cameraPosition.set(focus.x,28,focus.z+20);
   camera.position.lerp(cameraPosition,immediate?1:1-Math.exp(-dt*6));camera.lookAt(cameraTarget);
 }
 const map=$('map').getContext('2d');
