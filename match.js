@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runs';
-import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-runs';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-runs';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-runs';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-runs';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-runs';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-runs';
-import {shapeTarget} from './formation-shape.js?v=20261114-runs';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-runs';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-runs';
-import {planThroughPass} from './through-pass.js?v=20261114-runs';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-runs';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-runs';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-runs';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-runs';
-import {stepGoalBall} from './goal-effects.js?v=20261114-runs';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-runs';
-import {Shootout} from './shootout.js?v=20261114-runs';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-runs';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-runs';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runs2';
+import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-runs2';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-runs2';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-runs2';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-runs2';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-runs2';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-runs2';
+import {shapeTarget} from './formation-shape.js?v=20261114-runs2';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-runs2';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-runs2';
+import {planThroughPass} from './through-pass.js?v=20261114-runs2';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-runs2';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-runs2';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-runs2';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-runs2';
+import {stepGoalBall} from './goal-effects.js?v=20261114-runs2';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-runs2';
+import {Shootout} from './shootout.js?v=20261114-runs2';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-runs2';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-runs2';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -475,8 +475,10 @@ export class Match {
   }
   // 침투 (FC: Q, 1~4 angle): one attacker sprints in behind. angle is degrees across the attacker's view,
   // 0 = 왼쪽 터치라인 · 90 = 상대 골대 정면 · 180 = 오른쪽 터치라인. No angle runs at the goal behind the line.
-  // Q: send a teammate on a run and show his four run branches (1~4 redirect him). Each further Q picks a
-  // different teammate, so several runs can overlap; a run lasts until he gets the ball, we lose it, or E + C.
+  // Q: send a teammate on a run and show his four run branches (1~4 redirect him). Each further Q calls off the
+  // current runner and sends the next teammate in a fixed cycle (A → B → C → A …), built when Q is first pressed
+  // for this carrier and ordered by role, how far forward, distance and the carrier's facing. A run lasts until
+  // he gets the ball, we lose it, Q switches it to the next player, or E + C.
   openRunMenu(){return this.callRun('menu');}
   isCalledRunner(p){return (p?.calledUntil??0)>this.time;}
   callRun(angle=null){
@@ -489,12 +491,16 @@ export class Match {
     // A number key redirects the teammate whose branches are on screen.
     if(angle!=='menu'&&menu&&!menu.sentOff&&menu.id!==carrier.id)runner=menu;
     if(!runner){
-      const fx=Math.sin(carrier.heading),fz=Math.cos(carrier.heading),pick=excludeRunning=>{let best=null,rank=-Infinity;
-        for(const r of this.players){if(r.team!==0||r.index===0||r.sentOff||r.id===carrier.id||r.id===menu?.id||excludeRunning&&this.isCalledRunner(r))continue;
-          const d=distance(r,carrier),facing=((r.x-carrier.x)*fx+(r.z-carrier.z)*fz)/(d||1);
-          const score=(roleBonus[r.role]??-6)+r.x*s*.2-Math.max(0,d-16)*.55+facing*3;if(score>rank){rank=score;best=r;}}
-        return best;};
-      runner=pick(true)??pick(false);
+      const fx=Math.sin(carrier.heading),fz=Math.cos(carrier.heading);
+      if(!this.runCycle||this.runCycle.carrier!==carrier.id){
+        const order=this.players.filter(r=>r.team===0&&r.index>0&&!r.sentOff&&r.id!==carrier.id).map(r=>{const d=distance(r,carrier),facing=((r.x-carrier.x)*fx+(r.z-carrier.z)*fz)/(d||1);return {id:r.id,score:(roleBonus[r.role]??-6)+r.x*s*.2-Math.max(0,d-16)*.55+facing*3};}).sort((a,b)=>b.score-a.score).slice(0,5).map(e=>e.id);
+        this.runCycle={carrier:carrier.id,order,next:0,current:-1};
+      }
+      const cyc=this.runCycle;
+      // Call off the previous runner: he goes back to normal off-ball positioning.
+      const prev=this.players[cyc.current];if(prev&&this.isCalledRunner(prev)){prev.calledUntil=0;prev.runUntil=this.time;prev.runTarget=null;}
+      for(let k=0;k<cyc.order.length&&!runner;k++){const r=this.players[cyc.order[(cyc.next+k)%cyc.order.length]];if(r&&!r.sentOff&&r.id!==carrier.id&&r.id!==cyc.current){runner=r;cyc.next=(cyc.order.indexOf(r.id)+1)%cyc.order.length;}}
+      if(runner)cyc.current=runner.id;
     }
     if(!runner)return null;
     let dx,dz;
@@ -503,8 +509,7 @@ export class Match {
     const reach=30;runner.runTarget={x:clamp(runner.x+dx*reach,-50,50),z:clamp(runner.z+dz*reach,-32,32)};runner.runDir={x:dx,z:dz};
     runner.runUntil=runner.calledUntil=this.time+15;this.calledRun={id:runner.id,until:runner.runUntil,passed:false};
     this.runMenu=angle==='menu'?{id:runner.id,until:this.controlTime+3}:null;
-    const active=this.players.filter(q=>q.team===0&&this.isCalledRunner(q)).length;
-    this.announce('info','침투',`${this.playerLabel(runner.id)} · ${angle===null||angle==='menu'?'골대 방향':angle+'°'}${active>1?` · 침투 ${active}명`:''}`,1.6);
+    this.announce('info','침투',`${this.playerLabel(runner.id)} · ${angle===null||angle==='menu'?'골대 방향':angle+'°'}`,1.6);
     return runner;
   }
   // End called runs once the move is over: the runner has the ball, the other team has it, or E + C.
@@ -513,7 +518,7 @@ export class Match {
     for(const p of this.players){if(!this.isCalledRunner(p))continue;if(owner&&(owner.id===p.id||owner.team!==p.team)){p.calledUntil=0;p.runUntil=Math.min(p.runUntil,this.time);p.runTarget=null;}}
     if(this.calledRun&&!this.isCalledRunner(this.players[this.calledRun.id]))this.calledRun=null;
   }
-  cancelRuns(){let any=false;for(const p of this.players)if(p.team===0&&this.isCalledRunner(p)){p.calledUntil=0;p.runUntil=this.time;p.runTarget=null;any=true;}this.calledRun=null;this.runMenu=null;if(any)this.announce('info','침투 취소','침투 지시를 모두 취소했습니다.',1.6);return any;}
+  cancelRuns(){let any=false;if(this.runCycle)this.runCycle.current=-1;for(const p of this.players)if(p.team===0&&this.isCalledRunner(p)){p.calledUntil=0;p.runUntil=this.time;p.runTarget=null;any=true;}this.calledRun=null;this.runMenu=null;if(any)this.announce('info','침투 취소','침투 지시를 모두 취소했습니다.',1.6);return any;}
   // Z (tap, on the ball): the nearest teammate comes short toward the carrier to offer a pass.
   callSupport(){
     const carrier=this.owner>=0?this.players[this.owner]:null;if(!carrier||carrier.team!==0||carrier.id!==this.selected||this.mode!=='player'||this.restart)return null;

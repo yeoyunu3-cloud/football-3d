@@ -21,7 +21,7 @@ function loadPeer(){
   return peerScript;
 }
 
-import {createLobby} from './lobby.js?v=20261114-runs';
+import {createLobby} from './lobby.js?v=20261114-runs2';
 export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onLobbyState}){
   const lobby=createLobby({onRooms,onState:onLobbyState});
   const listed=()=>state.room&&!isLocalRoom(state.room);
