@@ -333,7 +333,7 @@ export class Match {
     if(this.charge&&this.charge.type!==type||this.pending&&this.pending.type!==type){this.cancelKick();return false;}
     if(this.restart?.manual){this.charge??={type,start:this.controlTime,player:this.selected,shotStyle};return true;}
     if(this.owner<0&&this.ball.y>1.1){this.startHeader(this.players[this.selected],type==='pass'?'pass':'shoot');return;}
-    if(!this.charge){this.charge={type,start:this.controlTime,player:this.selected,shotStyle};if(type==='through'&&this.owner===this.selected){const called=this.calledRun&&!this.calledRun.passed&&this.calledRun.until>this.time?this.players[this.calledRun.id]:null,runner=called&&!called.sentOff?called:this.throughTarget(this.players[this.selected],.4,this.input);if(runner){this.charge.runner=runner.id;this.charge.runUpdateAt=this.time;runner.runTarget=this.throughSpace(this.players[this.selected],runner,.4,this.input);runner.runUntil=this.time+1.2;}}}
+    if(!this.charge){this.charge={type,start:this.controlTime,player:this.selected,shotStyle};if(type==='through'&&this.owner===this.selected){const runner=this.throughTarget(this.players[this.selected],.4,this.input);if(runner){this.charge.runner=runner.id;this.charge.runUpdateAt=this.time;runner.runTarget=this.throughSpace(this.players[this.selected],runner,.4,this.input);runner.runUntil=this.time+1.2;}}}
   }
   releaseKick(type){
     if(!this.charge||this.charge.type!==type)return false;
@@ -503,8 +503,6 @@ export class Match {
   strike(p,type,power=.35,aim=null,preferredTarget=null,shotStyle='auto') {
     const s=this.attackSign(p.team),b=this.ball;b.shotFlight=null;b.flightDrag=null;b.curlX=b.curlZ=b.curveRemaining=0;
     this.offsideSnapshot(p.team,p.id);this.lastKick={type,team:p.team,isShot:type==='shoot'};if(['pass','through','cross','loft'].includes(type))for(const q of this.players)if(q.team!==p.team&&q.index>0)q.ballReactionUntil=this.controlTime+.1+Math.min(.07,distance(q,b)/200);
-    // After Q / 1~4 the player's next pass (S, W or A) is for the runner, always.
-    if(!preferredTarget&&['pass','through','cross'].includes(type)&&this.mode==='player'&&p.team===0&&p.id===this.selected){const run=this.calledRun,r=run&&!run.passed&&run.until>this.time?this.players[run.id]:null;if(r&&!r.sentOff&&r.id!==p.id){preferredTarget=r;run.passed=true;}}
     let tx=s*53.5,tz=0,speed=33,loft=2.6,kickFlight=0;
     if(['pass','through','cross','loft'].includes(type)){
       const target=preferredTarget&&!preferredTarget.sentOff&&preferredTarget.team===p.team?preferredTarget:type==='cross'?this.crossTarget(p,power,aim):type==='through'?this.throughTarget(p,power,aim):this.passTarget(p,power,aim);
@@ -564,7 +562,7 @@ export class Match {
     let best=null,rank=-Infinity;
     for(const r of candidates){const d=distance(p,r),alignment=((r.x-p.x)*ax+(r.z-p.z)*az)/d;if(alignment<.3)continue;
       const point=this.throughSpace(p,r,power,{x:ax,z:az}),lane=this.laneClearance(this.ball,point,p.team),onside=r.x*s<=line+.15;
-      const score=alignment*13-Math.abs(d-(9+power*22))*.25+point.score*.65+(onside?12:-30)+(['ST','LW','RW','AM'].includes(r.role)?3:0)+(this.calledRun?.id===r.id&&this.calledRun.until>this.time?45:0);
+      const score=alignment*13-Math.abs(d-(9+power*22))*.25+point.score*.65+(onside?12:-30)+(['ST','LW','RW','AM'].includes(r.role)?3:0)+(this.calledRun?.id===r.id&&this.calledRun.until>this.time?6:0);
       if(score>rank){rank=score;best=r;}
     }return best;
   }
