@@ -1,6 +1,6 @@
-import {sculptFootballGeometry,buildHairGeometry} from './athlete-sculpt.js?v=20261114-runmenu';
-import {reshapeAthlete} from './athlete-proportions.js?v=20261114-runmenu';
-import {VISUAL_SCALE,gaitFor,strideRate} from './visual-scale.js?v=20261114-runmenu';
+import {sculptFootballGeometry,buildHairGeometry} from './athlete-sculpt.js?v=20261114-replay';
+import {reshapeAthlete} from './athlete-proportions.js?v=20261114-replay';
+import {VISUAL_SCALE,gaitFor,strideRate} from './visual-scale.js?v=20261114-replay';
 import * as THREE from './vendor/three.module.min.js';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {clone as cloneRig} from './vendor/utils/SkeletonUtils.js';

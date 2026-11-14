@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runmenu';
-import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-runmenu';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-runmenu';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-runmenu';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-runmenu';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-runmenu';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-runmenu';
-import {shapeTarget} from './formation-shape.js?v=20261114-runmenu';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-runmenu';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-runmenu';
-import {planThroughPass} from './through-pass.js?v=20261114-runmenu';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-runmenu';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-runmenu';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-runmenu';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-runmenu';
-import {stepGoalBall} from './goal-effects.js?v=20261114-runmenu';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-runmenu';
-import {Shootout} from './shootout.js?v=20261114-runmenu';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-runmenu';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-runmenu';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-replay';
+import {DEFAULT_ARCHETYPES,traits,heightOf,weightOf} from './player-traits.js?v=20261114-replay';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-replay';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-replay';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-replay';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-replay';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-replay';
+import {shapeTarget} from './formation-shape.js?v=20261114-replay';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-replay';
+import {attackPlan,attackPosition} from './attacking.js?v=20261114-replay';
+import {planThroughPass} from './through-pass.js?v=20261114-replay';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-replay';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-replay';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-replay';
+import {flightStep,planShot} from './ball-flight.js?v=20261114-replay';
+import {stepGoalBall} from './goal-effects.js?v=20261114-replay';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-replay';
+import {Shootout} from './shootout.js?v=20261114-replay';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-replay';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3} from './keeper.js?v=20261114-replay';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -97,6 +97,7 @@ export class Match {
   get lastTouch(){return this._lastTouch??-1;}
   set lastTouch(id){this._lastTouch=id;const p=this.players?.[id];if(p){this.lastTouchByTeam??=[-1,-1];this.lastTouchByTeam[p.team]=id;}}
   reset() {
+    this.recFrames=[];this.recClock=0;this.replay=null;this.replayClip=null;this.goalClock=undefined;
     this.id=`match-${Date.now().toString(36)}-${++matchSerial}`;this.startedAt=new Date().toISOString();this.variationSeed=hashSeed(this.id);this.lastTouchByTeam=[-1,-1];this.events=[];this.notice=null;this.controlTime=0;this.cardWait=0;this.finishLogged=false;this.throwState=null;this.half=1;this.forfeit=null;this.lastKick=null;this.phase='play';this.restart=null;this.offside=null;this.directRestart=null;this.score=[0,0];resetClock(this);this.shootout=null;this.winner=null;this.penaltyInFlight=false;this.penaltyFlightElapsed=0;this.running=false;this.ended=false;this.paused=false;this.goalWait=0;this.event='';this.stats={shots:[0,0],saves:[0,0],possession:[0,0],passes:[0,0],restarts:[{},{}]};this.manualSelection=false;this.defending=false;this.switchAt=0;this.selectionPossessionTeam=-1;this.charge=null;this.halftimeRemaining=0;this.inputRevision=0;this.highlight=null;this.lastTouchTeam=-1;this.selectionGrace=0;this.possessionWonAt=[0,0];this.lastPossessionTeam=-1;
     for(const p of this.players){p.shootoutGoalkeeper=false;p.shootoutExcluded=false;p.sentOff=false;p.yellow=0;p.fouls=0;p.stamina=100;p.keeperAction=null;p.holdingBall=false;p.aerial=null;p.trap=0;p.recover=0;p.controlCooldown=0;p.celebration=0;p.celebrationLift=0;p.observeCarryAt=0;p.wallUntil=0;p.wallJumpTime=0;p.distribution=null;p.keeperReleased=false;p.dribbleTarget=null;p.dribbleUntil=0;p.dribbleSide=0;p.feint=0;}
     this.kickoff(0);
@@ -286,7 +287,7 @@ export class Match {
       this.announce('goal',ownGoal?'득점 · 자책골':'득점',`${scorer?.number??''}번 ${scorer?.name??''}`.trim(),7.5);this.notice.team=attackTeam;this.celebratingPlayer=celebrator?.id??-1;this.celebrationTeam=attackTeam;
       this.celebrationGroup=this.players.filter(p=>p.team===attackTeam&&!p.sentOff&&p.id!==celebrator?.id&&p.index>0).sort((a,b)=>distance(a,celebrator??this.ball)-distance(b,celebrator??this.ball)).slice(0,5).map(p=>p.id);
       const goalNumber=this.score[0]+this.score[1];this.celebrationKind=CELEBRATIONS[(goalNumber-1)%CELEBRATIONS.length];this.celebrationVariant=Math.floor(variation(this,`celebration:${goalNumber}`)*3);
-      this.celebrationRoute=planCelebration(celebrator??{x,z},this.attackSign(attackTeam),this.celebrationKind,z);this.celebrationDuration=this.celebrationRoute.duration;this.notice.remaining=this.celebrationDuration;this.highlight={kind:'goal',remaining:6};this.goalWait=this.celebrationDuration;this.nextKickoff=defendTeam;this.event=attackTeam===0?'홈 팀 득점':'원정 팀 득점';this.owner=-1;this.goalNet={side:Math.sign(e.edge),elapsed:0,hitAt:null,strength:clamp(Math.hypot(b.vx,b.vz)/25,.5,1.4),impact:{y:height,z}};if(Math.abs(b.vx)<1)b.vx=Math.sign(e.edge)*8;b.shotFlight=null;return true;
+      this.celebrationRoute=planCelebration(celebrator??{x,z},this.attackSign(attackTeam),this.celebrationKind,z);this.celebrationDuration=this.celebrationRoute.duration;this.notice.remaining=this.celebrationDuration;this.highlight={kind:'goal',remaining:6};this.goalWait=this.celebrationDuration;this.goalClock=this.recClock??0;this.replayClip=null;this.nextKickoff=defendTeam;this.event=attackTeam===0?'홈 팀 득점':'원정 팀 득점';this.owner=-1;this.goalNet={side:Math.sign(e.edge),elapsed:0,hitAt:null,strength:clamp(Math.hypot(b.vx,b.vz)/25,.5,1.4),impact:{y:height,z}};if(Math.abs(b.vx)<1)b.vx=Math.sign(e.edge)*8;b.shotFlight=null;return true;
     }
     const corner=lastTeam===defendTeam;
     this.setupRestart(corner?'corner':'goalKick',corner?attackTeam:defendTeam,Math.sign(e.edge)*(corner?52.2:47),corner?(z>=0?33.7:-33.7):0);return true;
@@ -366,8 +367,35 @@ export class Match {
     const keeper=this.players[this.selected];if(isHumanKeeper(this,keeper)&&keeper.holdingBall)return startKeeperRelease(this,keeper,type==='pass'||type==='through'?'throw':'sideVolley',clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1));
     return this.kick(type,clamp((chargeEnd-charge.start)/(.7/FIELD_SCALE),.12,1),charge.shotStyle);
   }
-  // S during a goal celebration skips straight to the kickoff.
-  skipCelebration(){if(!this.running||this.paused||this.ended||this.phase!=='play'||this.goalWait<=0)return false;this.goalWait=1e-4;if(this.notice)this.notice.remaining=Math.min(this.notice.remaining??0,.6);if(this.highlight)this.highlight.remaining=0;return true;}
+  // Goal replay: the last seconds of play are recorded as light snapshots; after the celebration (watched or
+  // skipped) the build-up and finish are played back in slight slow motion. S skips the replay too.
+  recordFrame(dt){
+    this.recClock=(this.recClock??0)+dt;this.recFrames??=[];const last=this.recFrames.at(-1);if(last&&this.recClock-last.t<1/30)return;
+    const keep=['x','z','vx','vz','heading','stride','kickAnim','kickStyle','jump','dive','diveSide','diveHeight','diveVX','diveVZ','tackleAnim','throwAnim','jostle','holdingBall'];
+    this.recFrames.push({t:this.recClock,owner:this.owner,ball:{x:this.ball.x,y:this.ball.y,z:this.ball.z,vx:this.ball.vx,vy:this.ball.vy,vz:this.ball.vz},players:this.players.map(p=>{const o={};for(const k of keep)o[k]=p[k];o.slide=p.slide?{...p.slide}:null;o.aerial=p.aerial?{...p.aerial}:null;o.keeperAction=p.keeperAction?{...p.keeperAction}:null;o.skill=p.skill?{...p.skill,ball:{...p.skill.ball}}:null;return o;})});
+    while(this.recFrames.length&&this.recClock-this.recFrames[0].t>9)this.recFrames.shift();
+    // Cut the clip once the ball has settled in the net: about 5.5 s of build-up plus 1.3 s after the goal.
+    if(this.goalWait>0&&!this.replayClip&&this.recClock>=(this.goalClock??0)+1.3)this.replayClip=this.recFrames.filter(f=>f.t>=this.goalClock-5.5);
+  }
+  startReplay(){
+    const frames=this.replayClip??(this.goalClock!==undefined?this.recFrames?.filter(f=>f.t>=this.goalClock-5.5):null);this.replayClip=null;
+    if(!frames||frames.length<20)return false;
+    this.replay={frames,t:0,start:frames[0].t,duration:frames.at(-1).t-frames[0].t,speed:.8};this.phase='replay';this.charge=null;this.pending=null;this.notice=null;this.highlight=null;this.event='다시보기';this.applyReplayFrame();return true;
+  }
+  applyReplayFrame(){
+    const r=this.replay,time=r.start+Math.min(r.t,r.duration);let i=r.index??0;while(i<r.frames.length-1&&r.frames[i+1].t<=time)i++;r.index=i;
+    const a=r.frames[i],b=r.frames[Math.min(i+1,r.frames.length-1)],k=b.t>a.t?clamp((time-a.t)/(b.t-a.t),0,1):0,mix=(x,y)=>x+(y-x)*k;
+    this.players.forEach((p,n)=>{const f=a.players[n],g=b.players[n];Object.assign(p,f);p.x=mix(f.x,g.x);p.z=mix(f.z,g.z);p.stride=mix(f.stride,g.stride);p.jump=mix(f.jump??0,g.jump??0);p.celebration=p.celebrationLift=0;});
+    Object.assign(this.ball,{x:mix(a.ball.x,b.ball.x),y:mix(a.ball.y,b.ball.y),z:mix(a.ball.z,b.ball.z),vx:a.ball.vx,vy:a.ball.vy,vz:a.ball.vz,shotFlight:null});this.owner=a.owner;
+  }
+  stepReplay(dt){const r=this.replay;r.t+=dt*r.speed;this.applyReplayFrame();if(r.t>=r.duration+.5)this.finishReplay();}
+  finishReplay(){
+    if(!this.replay)return;this.replay=null;this.phase='play';this.recFrames=[];this.owner=-1;
+    for(const p of this.players){p.slide=null;p.aerial=null;p.keeperAction=null;p.skill=null;p.holdingBall=false;p.jump=0;}
+    this.kickoff(this.nextKickoff);this.event='';
+  }
+  // S during a goal celebration skips to the replay; S during the replay skips to the kickoff.
+  skipCelebration(){if(!this.running||this.paused||this.ended)return false;if(this.phase==='replay'){this.finishReplay();return true;}if(this.phase!=='play'||this.goalWait<=0)return false;this.goalWait=1e-4;if(this.notice)this.notice.remaining=Math.min(this.notice.remaining??0,.6);if(this.highlight)this.highlight.remaining=0;return true;}
   dropKeeperBall(){const p=this.players[this.selected];return isHumanKeeper(this,p)&&startKeeperRelease(this,p,'drop',0);}
   modifyShotStyle(style){if(!this.charge||this.charge.type!=='shoot'||!['chip','power','finesse','low','rabona'].includes(style))return false;this.charge.shotStyle=style;return true;}
   modifyKickStyle(style){const allowed={shoot:['chip','power','finesse','low','rabona'],cross:['curl','ground','early','low','bounce'],pass:['curl','lead','flair','drive'],through:['lob','driven']}[this.charge?.type];if(!allowed?.includes(style))return false;this.charge.shotStyle=style;return true;}
@@ -963,6 +991,8 @@ export class Match {
     if(this.notice){this.notice.remaining-=dt;if(this.notice.remaining<=0)this.notice=null;}
     if(this.highlight){this.highlight.remaining-=dt;if(this.highlight.remaining<=0)this.highlight=null;}
     if(this.phase==='shootout'){this.shootout.step(this,dt);return;}
+    if(this.phase==='replay'){this.stepReplay(dt);return;}
+    if(this.phase==='play'&&!this.restart&&!this.kickoffState)this.recordFrame(dt);
     if(this.phase==='play'&&this.goalWait<=0&&this.cardWait<=0&&!this.kickoffState){
       this.halfStarted=true;const lost=Boolean(this.restart||this.throwState);
       const due=advanceClock(this,dt*FIELD_SCALE,lost);
@@ -987,7 +1017,7 @@ export class Match {
         }
         scorer.celebrationLift=(this.celebrationVariant??0)===0&&hugs>=2&&elapsed>route.groupAt+.5?Math.sin(Math.min(1,(elapsed-route.groupAt-.5)/1.8)*Math.PI)*.5:0;
       }
-      if(this.goalWait<=0){for(const p of this.players)p.celebration=0;this.kickoff(this.nextKickoff);this.event='';}return;
+      if(this.goalWait<=0){for(const p of this.players)p.celebration=p.celebrationLift=0;if(!this.startReplay()){this.kickoff(this.nextKickoff);this.event='';}}return;
     }
     if(this.restart){
       const r=this.restart;r.elapsed=(r.elapsed??0)+dt;this.recoverStamina(dt,true);r.readyAfter=Math.max(0,r.readyAfter-dt);

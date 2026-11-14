@@ -1,5 +1,5 @@
-import {keeperBias} from './opponent-adaptation.js?v=20261114-runmenu';
-import {forecastBall} from './ball-flight.js?v=20261114-runmenu';
+import {keeperBias} from './opponent-adaptation.js?v=20261114-replay';
+import {forecastBall} from './ball-flight.js?v=20261114-replay';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function keeperTarget(match,p,carrier){

@@ -1,7 +1,7 @@
-import {outletRisk} from './opponent-adaptation.js?v=20261114-runmenu';
-import {variation} from './match-variation.js?v=20261114-runmenu';
-import {predictBall} from './keeper.js?v=20261114-runmenu';
-import {passSafety,tacticValue} from './tactics.js?v=20261114-runmenu';
+import {outletRisk} from './opponent-adaptation.js?v=20261114-replay';
+import {variation} from './match-variation.js?v=20261114-replay';
+import {predictBall} from './keeper.js?v=20261114-replay';
+import {passSafety,tacticValue} from './tactics.js?v=20261114-replay';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function deliveryLane(match,from,to){

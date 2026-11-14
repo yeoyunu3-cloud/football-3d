@@ -1,25 +1,25 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-runmenu';
-import {fillEventRow} from './event-format.js?v=20261114-runmenu';
-import {applyClub,defaultClub} from './roster.js?v=20261114-runmenu';
-import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-runmenu';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-runmenu';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-runmenu';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-runmenu';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-runmenu';
-import {paintKit} from './kit-art.js?v=20261114-runmenu';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-runmenu';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-runmenu';
-import {netOffset} from './goal-effects.js?v=20261114-runmenu';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-runmenu';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-replay';
+import {fillEventRow} from './event-format.js?v=20261114-replay';
+import {applyClub,defaultClub} from './roster.js?v=20261114-replay';
+import {ARCHETYPES,archetypeOf,traits} from './player-traits.js?v=20261114-replay';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-replay';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-replay';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-replay';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-replay';
+import {paintKit} from './kit-art.js?v=20261114-replay';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-replay';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-replay';
+import {netOffset} from './goal-effects.js?v=20261114-replay';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-replay';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-runmenu';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-runmenu';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-runmenu';
-import { saveMatch } from './squads.js?v=20261114-runmenu';
-import { notify,textNode } from './ui.js?v=20261114-runmenu';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-runmenu';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-runmenu';
-import { keeperPose } from './keeper.js?v=20261114-runmenu';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-replay';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-replay';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-replay';
+import { saveMatch } from './squads.js?v=20261114-replay';
+import { notify,textNode } from './ui.js?v=20261114-replay';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-replay';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-replay';
+import { keeperPose } from './keeper.js?v=20261114-replay';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -191,6 +191,15 @@ const runBranches=Object.entries(CONTROL_PRESETS.motive.runAngles).map(([label,a
   const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='#16202b';g.beginPath();g.arc(64,64,54,0,Math.PI*2);g.fill();g.lineWidth=8;g.strokeStyle='#ffe27a';g.stroke();g.fillStyle='#ffe27a';g.font='bold 78px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,64,70);
   const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));tag.scale.set(2.3,2.3,1);tag.renderOrder=20;
   runMenu.add(arrow,tag);return {angle,arrow,tag};});
+// Replay badge (top centre) and the S-skip hint during the celebration and the replay.
+const replayBadge=document.createElement('div');replayBadge.className='replay-badge';replayBadge.hidden=true;document.body.append(replayBadge);
+{const style=document.createElement('style');style.textContent='.replay-badge{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:30;display:flex;gap:10px;align-items:center;padding:8px 16px;border-radius:999px;background:rgba(14,20,28,.82);color:#f4f6f8;font:600 14px/1 system-ui,sans-serif;letter-spacing:.04em;pointer-events:none}.replay-badge[hidden]{display:none}.replay-badge b{color:#ff5a4d}.replay-badge kbd{padding:2px 7px;border-radius:5px;background:#f4f6f8;color:#111;font:700 12px/1.3 system-ui,sans-serif}';document.head.append(style);}
+let replayBadgeState='';
+function updateReplayBadge(){
+  const state=homeOpen||!match.running||match.ended?'':match.phase==='replay'?'replay':match.phase==='play'&&match.goalWait>0?'celebration':'';
+  if(state===replayBadgeState)return;replayBadgeState=state;replayBadge.hidden=!state;
+  replayBadge.innerHTML=state==='replay'?'<b>● REPLAY</b><span>골 다시보기</span><kbd>S</kbd><span>건너뛰기</span>':state==='celebration'?'<kbd>S</kbd><span>세리머니 건너뛰기</span>':'';
+}
 function updateRunMenu(){
   const menu=match.runMenu,r=menu&&menu.until>match.controlTime&&match.owner>=0&&match.players[match.owner].team===0&&!match.charge?match.players[menu.id]:null;
   runMenu.visible=Boolean(r)&&!homeOpen&&match.mode==='player';if(!runMenu.visible)return;
@@ -364,20 +373,22 @@ function sampleInput(){
 const focus=new THREE.Vector3(),cameraTarget=new THREE.Vector3(),cameraPosition=new THREE.Vector3();
 function cameraUpdate(dt,immediate=false){
   if(drawing&&!immediate)return;
-  const p=match.players[match.goalWait>0?match.celebratingPlayer:match.selected],b=match.goalWait>0&&match.goalNet?.elapsed>.9?p:match.ball;
+  const replay=match.phase==='replay',p=replay?match.ball:match.players[match.goalWait>0?match.celebratingPlayer:match.selected],b=match.goalWait>0&&match.goalNet?.elapsed>.9?p:match.ball;
   if(match.phase==='shootout'){camera.position.lerp(camera.aspect<.8?new THREE.Vector3(23*FIELD_SCALE,20,0):new THREE.Vector3(29*FIELD_SCALE,15,0),immediate?1:1-Math.exp(-dt*6));camera.lookAt(49*FIELD_SCALE,1,0);return;}
   // Parallel touchline camera: screen right is always attacking right.
   const r=match.restart,s=match.attackSign(r?.team??0);
   const x=r?THREE.MathUtils.clamp(r.type==='corner'?r.x-s*8:r.type==='goalKick'?r.x+s*7:r.x+s*6,-47,47):THREE.MathUtils.clamp(match.mode==='manager'?b.x:p.x*.42+b.x*.58,match.goalWait>0?-49:-39,match.goalWait>0?49:39);
   // Player mode follows the play across the pitch so the close broadcast camera keeps players large.
-  const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):match.mode==='player'&&!r?THREE.MathUtils.clamp((p.z*.4+b.z*.6)*.75,-22,22):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
+  const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):(match.mode==='player'||replay)&&!r?THREE.MathUtils.clamp((p.z*.4+b.z*.6)*.75,-22,22):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
   const ideal=new THREE.Vector3(x*FIELD_SCALE,0,z*FIELD_SCALE);
   focus.lerp(ideal,immediate?1:1-Math.exp(-dt*(r?7:4.5)));
   cameraTarget.copy(focus);if(match.mode==='player'&&!r&&match.goalWait<=0)cameraTarget.y=1;
   const narrow=camera.aspect<.8;
-  const direct=match.mode==='player'&&!r;
+  const direct=(match.mode==='player'||replay)&&!r;
   // Mid-height broadcast view in player mode: about half the pitch width in frame, ~30° down.
   cameraPosition.set(focus.x,narrow?36:direct?23:43,focus.z+(narrow?38:direct?33:25));
+  // Replay: a lower, closer angle that tracks the ball.
+  if(replay)cameraPosition.set(focus.x,narrow?24:13,focus.z+(narrow?30:22));
   if(match.goalWait>0)cameraPosition.set(focus.x,28,focus.z+20);
   camera.position.lerp(cameraPosition,immediate?1:1-Math.exp(-dt*6));camera.lookAt(cameraTarget);
 }
@@ -499,7 +510,7 @@ function frame(now){
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
   if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt/FIELD_SCALE*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
-  updateBallSound(dt);updateRunArrow();updateRunMenu();updateSkillHold();
+  updateBallSound(dt);updateRunArrow();updateRunMenu();updateReplayBadge();updateSkillHold();
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
     const relocated=visual.lastX===undefined||Math.hypot(p.x-visual.lastX,p.z-visual.lastZ)>4;visual.renderHeading=relocated?p.heading:followHeading(visual.renderHeading,p.heading,match.paused?0:dt);visual.lastX=p.x;visual.lastZ=p.z;
