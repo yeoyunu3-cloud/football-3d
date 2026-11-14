@@ -1,6 +1,6 @@
-import {sculptFootballGeometry,buildHairGeometry} from './athlete-sculpt.js?v=20261114-acro';
-import {reshapeAthlete} from './athlete-proportions.js?v=20261114-acro';
-import {VISUAL_SCALE,gaitFor,strideRate} from './visual-scale.js?v=20261114-acro';
+import {sculptFootballGeometry,buildHairGeometry} from './athlete-sculpt.js?v=20261114-fix3';
+import {reshapeAthlete} from './athlete-proportions.js?v=20261114-fix3';
+import {VISUAL_SCALE,gaitFor,strideRate} from './visual-scale.js?v=20261114-fix3';
 import * as THREE from './vendor/three.module.min.js';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {clone as cloneRig} from './vendor/utils/SkeletonUtils.js';
@@ -150,17 +150,21 @@ export function updateRealPlayer(v,p,dt,active,charge=0){
   let key=charge>0?windUp:striking?v.kickKind:p?.throwAnim>0?'throw':gaitFor(v.motionSpeed,v.actionName,p?.ownsBall);
   if(p?.slide)key='slide';else if(p?.tackleAnim>0)key='tackle';
   const signature=p?.celebration>0&&!(p.celebration<1.25&&p.celebrationKind!=='embrace');
-  if(p?.keeperAction||p?.distribution||p?.wall||signature)key='idle';switchAction(v,key);
+  // Volleys and acrobatic kicks are posed by hand (game.js sets the leg/arm controls), so the clip underneath stays neutral.
+  const acro=Boolean(p?.aerial&&p.aerial.style&&p.aerial.style!=='header');
+  if(p?.keeperAction||p?.distribution||p?.wall||signature||acro)key='idle';switchAction(v,key);
   const action=v.actions[key];
-  if(key==='slide'||key==='tackle'){const progress=key==='slide'?Math.min(1,p.slide.elapsed/p.slide.duration):1-p.tackleAnim/.42;action.timeScale=0;action.time=action.getClip().duration*Math.min(.98,progress);v.mixer.update(dt);}
+  // Slide: play the clip through the slide, then run it back to the start while he gets up (no frozen last frame).
+  const slideProgress=sl=>{if(sl.elapsed<sl.duration)return .9*sl.elapsed/sl.duration;const r=Math.min(1,(sl.elapsed-sl.duration)/Math.max(.05,sl.recover));return .9*(1-r*r*(3-2*r));};
+  if(key==='slide'||key==='tackle'){const progress=key==='slide'?slideProgress(p.slide):1-p.tackleAnim/.42;action.timeScale=0;action.time=action.getClip().duration*Math.min(.98,progress);v.mixer.update(dt);}
   else if(charge>0){action.timeScale=0;action.time=action.getClip().duration*(key==='pass'?.06+.16*charge:.06+.36*charge);v.mixer.update(dt);}
   else if(striking){action.timeScale=0;action.time=action.getClip().duration*Math.min(.98,.43+(v.clock-v.kickStarted)/.38*.55);v.mixer.update(dt);}
   else{action.timeScale=['walk','run','dribble'].includes(key)?strideRate(v.motionSpeed,key,athleteScale*(v.group?.scale.y??1)):1;v.mixer.update(dt);}
-  if(p?.keeperAction||p?.distribution||signature){
+  if(p?.keeperAction||p?.distribution||signature||acro){
     const pairs=[[v.legs[0],v.bones.right_thigh],[v.legs[1],v.bones.left_thigh],[v.knees[0],v.bones.right_knee],[v.knees[1],v.bones.left_knee],[v.arms[0],v.bones.right_shoulder],[v.arms[1],v.bones.left_shoulder]];
     for(const [control,bone] of pairs){axis.setFromEuler(euler.set(control.rotation.x,-control.rotation.z,0));bone.quaternion.copy(v.restBones.get(bone.name)).multiply(axis);}
   }
-  if(p?.keeperAction||p?.distribution||signature){for(let i=0;i<2;i++){const bone=v.bones[i?'left_elbow':'right_elbow'];bone.quaternion.copy(v.restBones.get(bone.name)).multiply(axis.setFromEuler(euler.set(v.elbows[i].rotation.x,0,0)));}}
+  if(p?.keeperAction||p?.distribution||signature||acro){for(let i=0;i<2;i++){const bone=v.bones[i?'left_elbow':'right_elbow'];bone.quaternion.copy(v.restBones.get(bone.name)).multiply(axis.setFromEuler(euler.set(v.elbows[i].rotation.x,0,0)));}}
   v.model.position.y=athleteFloor;
   if(p?.index===0&&!p.keeperAction&&!p.distribution&&!signature&&speed<1.5){
     v.model.position.y-=.02;
@@ -176,5 +180,10 @@ export function updateRealPlayer(v,p,dt,active,charge=0){
   if(!p){for(const bone of Object.values(v.bones))bone.quaternion.copy(v.restBones.get(bone.name));v.bones.middle.rotation.x=.015+Math.sin(v.clock*1.8)*.008;v.bones.neck.rotation.x=-.025;
     for(const [i,side] of ['right','left'].entries()){v.bones[side+'_shoulder'].quaternion.multiply(axis.setFromEuler(euler.set(-.06,i?-.045:.045,0)));v.bones[side+'_elbow'].rotation.x=-.16;v.bones[side+'_knee'].rotation.x=.035;v.bones[side+'_ankle'].rotation.x=-.035;}
   }
+  // Ground contact: on the ground-level moves, lift the body so no bone sinks below the turf.
+  if(p?.slide||p?.tackleAnim>0||acro){v.model.updateMatrixWorld(true);v.group.updateWorldMatrix(true,false);let low=Infinity;for(const bone of Object.values(v.bones)){bone.getWorldPosition(floorProbe);low=Math.min(low,floorProbe.y);}
+    const ground=VISUAL_SCALE.turfY,clear=.05;
+    if(low<ground+clear){v.model.position.y+=(ground+clear-low)/(v.group.scale.y||1);}}
   v.model.updateMatrixWorld(true);
 }
+const floorProbe=new THREE.Vector3();

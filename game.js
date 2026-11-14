@@ -1,26 +1,26 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-acro';
-import {fillEventRow} from './event-format.js?v=20261114-acro';
-import {createOnline,validRoomName} from './online.js?v=20261114-acro';
-import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-acro';
-import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-acro';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-acro';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-acro';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-acro';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-acro';
-import {paintKit} from './kit-art.js?v=20261114-acro';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-acro';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-acro';
-import {netOffset} from './goal-effects.js?v=20261114-acro';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-acro';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-fix3';
+import {fillEventRow} from './event-format.js?v=20261114-fix3';
+import {createOnline,validRoomName} from './online.js?v=20261114-fix3';
+import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-fix3';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-fix3';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-fix3';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-fix3';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-fix3';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-fix3';
+import {paintKit} from './kit-art.js?v=20261114-fix3';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-fix3';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-fix3';
+import {netOffset} from './goal-effects.js?v=20261114-fix3';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-fix3';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-acro';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-acro';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-acro';
-import { saveMatch } from './squads.js?v=20261114-acro';
-import { notify,textNode } from './ui.js?v=20261114-acro';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-acro';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-acro';
-import { keeperPose } from './keeper.js?v=20261114-acro';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-fix3';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-fix3';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-fix3';
+import { saveMatch } from './squads.js?v=20261114-fix3';
+import { notify,textNode } from './ui.js?v=20261114-fix3';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-fix3';
+import {officialStep,celebrationPose} from './presentation.js?v=20261114-fix3';
+import { keeperPose } from './keeper.js?v=20261114-fix3';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -350,12 +350,13 @@ window.addEventListener('keydown',e=>{
     // D 후 S / A 후 S: a charging shot or cross turned into a fake.
     if(!e.repeat&&key===controls().fakeWith&&['shoot','cross'].includes(match.charge?.type)){clearTapRelease();sampleInput();if(match.fakeKick(fakeVariant()))return;}
     if(!e.repeat&&extraSkill(key))return;
+    if(!e.repeat&&key===controls().slideTackle&&(match.players[match.selected]?.slide||match.players[match.lastSlider]?.slide)){match.slideTackle();return;}
     if(!e.repeat&&key.startsWith('arrow')&&skillInput(key))return;
     if(['q','c','z'].includes(key)&&['pass','through','cross'].includes(match.charge?.type)){const style=kickStyleFor(match.charge.type,keys);if(style!=='auto')match.modifyKickStyle(style);sampleInput();return;}
     if(shotModKeys(controlPreset).includes(key)&&match.charge?.type==='shoot'){match.modifyShotStyle(shotStyleFor(keys,'auto',controlPreset));sampleInput();return;}
     // Read directional input before a same-frame pass or shot.
     sampleInput();
-    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'){start();if(!keys.has(controls().skill))match.openRunMenu();}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
+    if(!e.repeat){const action=actionFor(key,controlPreset,actionContext());if(action==='feint'){start();if(!keys.has(controls().skill))match.openRunMenu();}else if(action==='help'){start();match.callDefensiveHelp();}else if(action==='rush'){start();match.keeperRush(online?.isGuest?1:0);}else if(action==='switch')switchPlayer();else if(action==='tackle'){start();match.standTackle();}else if(action==='slide'){start();sampleInput();match.slideTackle();}else if(action==='run'){start();match.callRun(runAngleFor(key,controlPreset));}else if(action)beginAction(action);else start();}
   }
 });
 window.addEventListener('keyup',e=>{const key=inputKey(e),action=actionFor(key,controlPreset,{...actionContext(),defending:false,attacking:false});keys.delete(key);if(skillHold?.pendingTap&&!skillHold.fired&&skillArrow(key)===skillHold.dir){skillHold.fired=true;fireSkill(skillHold.pendingTap);}if(suppressKeyup.delete(key))return;
@@ -374,7 +375,8 @@ for(const event of ['pointerup','pointercancel','lostpointercapture'])$('sprint'
 function sampleInput(){
   if(homeOpen||match.mode==='manager'){match.setInput(0,0);return;}
   const input=movement(keys,controlPreset,match.restart?.type==='throw'&&match.selected===match.restart.taker);
-  match.setInput(input.x+joy.x,input.z+joy.y,input.sprint||touchSprint);
+  // C held with the ball (no kick charging) shields; Z held while a pass is coming lets it run through.
+  match.setInput(input.x+joy.x,input.z+joy.y,input.sprint||touchSprint,{shield:keys.has('c')&&!match.charge,dummy:keys.has('z')&&!match.charge&&match.owner!==match.selected});
 }
 const focus=new THREE.Vector3(),cameraTarget=new THREE.Vector3(),cameraPosition=new THREE.Vector3();
 let setPieceView=null,frameDistance=40;
@@ -401,13 +403,13 @@ function cameraUpdate(dt,immediate=false){
   cameraTarget.copy(focus);if(match.mode==='player'&&!r&&match.goalWait<=0)cameraTarget.y=1;
   const narrow=camera.aspect<.8;
   const direct=(match.mode==='player'||replay)&&!r;
-  // Broadcast view that frames the play: it zooms out until the players around the ball (the ten nearest,
+  // Broadcast view that frames the play: it zooms out until the players around the ball (the seven nearest,
   // both teams) fit on screen with a margin, and eases back in when the play is tight. ~35° down.
   if(direct){
-    const near=match.players.filter(q=>!q.sentOff&&q.index>0).sort((a,c)=>Math.hypot(a.x-b.x,a.z-b.z)-Math.hypot(c.x-b.x,c.z-b.z)).slice(0,10);
+    const near=match.players.filter(q=>!q.sentOff&&q.index>0).sort((a,c)=>Math.hypot(a.x-b.x,a.z-b.z)-Math.hypot(c.x-b.x,c.z-b.z)).slice(0,7);
     const halfWidth=Math.max(...near.map(q=>Math.abs(q.x*FIELD_SCALE-focus.x)))+6,depth=Math.max(...near.map(q=>Math.abs(q.z*FIELD_SCALE-focus.z)))+5;
     const hFov=2*Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect),want=Math.max(halfWidth/Math.tan(hFov/2),depth*1.9);
-    frameDistance+=(THREE.MathUtils.clamp(want,narrow?46:38,narrow?70:60)-frameDistance)*(immediate?1:1-Math.exp(-dt*1.4));
+    frameDistance+=(THREE.MathUtils.clamp(want,narrow?46:38,narrow?62:48)-frameDistance)*(immediate?1:1-Math.exp(-dt*1.4));
   }
   const fd=frameDistance,sinA=.57,cosA=.82;
   cameraPosition.set(focus.x,narrow?36:direct?fd*sinA:43,focus.z+(narrow?38:direct?fd*cosA:25));

@@ -1,7 +1,7 @@
-import {FIELD_SCALE} from './visual-scale.js?v=20261114-acro';
-import {distributionPose} from './keeper-control.js?v=20261114-acro';
-import {hasTrait} from './player-traits.js?v=20261114-acro';
-import {forecastBall} from './ball-flight.js?v=20261114-acro';
+import {FIELD_SCALE} from './visual-scale.js?v=20261114-fix3';
+import {distributionPose} from './keeper-control.js?v=20261114-fix3';
+import {hasTrait} from './player-traits.js?v=20261114-fix3';
+import {forecastBall} from './ball-flight.js?v=20261114-fix3';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const length=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const predictBall=forecastBall;
@@ -124,7 +124,7 @@ export function tryKeeperSave(match,p,before){
   const a=p.keeperAction,c=keeperContacts(p),bodyScale=(p.profile?.height??180)/180;
   const handDistance=Math.min(...c.hands.map(h=>sweepDistance3(h,before,b))),bodyDistance=sweepDistance3(c.body,before,b),footDistance=sweepDistance3(c.foot,before,b);
   // Tuned down: keepers were stopping ~3 in 4 clean shots on target.
-  const reach=.24+.16*bodyScale;
+  const reach=.36+.2*bodyScale;
   // Gloves, torso or an extended foot must physically meet the swept ball.
   const lowBody={x:p.x,y:.55*bodyScale,z:p.z},lowDistance=sweepDistance3(lowBody,before,b);
   // A penalty dive that guessed right and was judged to get there (see resumeRestart) meets the ball as it reaches him.

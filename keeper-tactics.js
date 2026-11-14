@@ -1,5 +1,5 @@
-import {keeperBias} from './opponent-adaptation.js?v=20261114-acro';
-import {forecastBall} from './ball-flight.js?v=20261114-acro';
+import {keeperBias} from './opponent-adaptation.js?v=20261114-fix3';
+import {forecastBall} from './ball-flight.js?v=20261114-fix3';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function keeperTarget(match,p,carrier){
@@ -8,6 +8,8 @@ export function keeperTarget(match,p,carrier){
   const shot=match.owner<0&&match.lastKick?.isShot&&b.vx*s<-.5;
   const pressure=Math.min(50,...opponents.map(q=>distance(q,b)));
   const box=point=>point.x*s<-35.8&&point.x*s>-53&&Math.abs(point.z)<19.5;
+  // Rush (W while defending): sprint at the ball or the carrier's next touch to smother the chance.
+  if(p.rushUntil>match.controlTime&&!shot&&bx<-18){const aim=carrier?forecastBall(b,.18):forecastBall(b,.3);p.keeperIntent='rush';return {x:clamp(aim.x,-52,52),z:clamp(aim.z,-26,26),speed:8.6};}
   if(!carrier&&!shot&&bx<-22&&Math.abs(b.z)<26){
     for(let t=.12;t<=1.8;t+=.12){const point=forecastBall(b,t),arrival=distance(p,point)/8.2+.08,enemy=Math.min(50,...opponents.map(q=>distance(q,point)/8.3)),friend=Math.min(50,...defenders.map(q=>distance(q,point)/8.3));
       if(point.y<1.45&&point.x*s<-24&&Math.abs(point.z)<26&&arrival<t+.3&&(arrival+.1<enemy||distance(p,b)<3)&&(arrival<friend+.2||box(point))){
