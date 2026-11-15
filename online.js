@@ -21,7 +21,7 @@ function loadPeer(){
   return peerScript;
 }
 
-import {createLobby} from './lobby.js?v=20261114-runs2';
+import {createLobby} from './lobby.js?v=20261115-def1';
 export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onLobbyState}){
   const lobby=createLobby({onRooms,onState:onLobbyState});
   const listed=()=>state.room&&!isLocalRoom(state.room);
@@ -55,7 +55,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
           }
           if(conn!==state.conn||!match.remote)return;state.lastSeen=performance.now();
           // Guest inputs. Everything is clamped or looked up by the engine, never trusted as-is.
-          if(message.t==='i'){const x=Math.max(-1,Math.min(1,Number(message.x)||0)),z=Math.max(-1,Math.min(1,Number(message.z)||0));match.remote.input={x,z,sprint:Boolean(message.s),shield:Boolean(message.h),dummy:Boolean(message.d)};}
+          if(message.t==='i'){const x=Math.max(-1,Math.min(1,Number(message.x)||0)),z=Math.max(-1,Math.min(1,Number(message.z)||0));match.remote.input={x,z,sprint:Boolean(message.s),shield:Boolean(message.h),dummy:Boolean(message.d),press:Boolean(message.pr)};}
           else if(message.t==='k')match.remoteKick(String(message.type),Number(message.power)||.4,message.aim&&{x:Number(message.aim.x)||0,z:Number(message.aim.z)||0},String(message.style??'auto'));
           else if(message.t==='tk')match.remoteTackle(Boolean(message.slide));
           else if(message.t==='sw')match.remoteSwitch();
@@ -100,7 +100,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
     match.netGuest=true;match.netState=null;state.lastSeen=performance.now();
     // Keep-alive to the host, and give up if the host goes silent.
     clearInterval(state.timer);state.timer=setInterval(()=>{send({t:'p'});if(performance.now()-state.lastSeen>SILENCE_MS)close('방장과의 연결이 끊겼습니다.');},1000);
-    match.setInput=(x,z,sprint=false,mods={})=>{const len=Math.hypot(x,z),nx=len>1?x/len:x,nz=len>1?z/len:z;match.input={x:nx,z:nz,sprint,shield:Boolean(mods.shield),dummy:Boolean(mods.dummy)};const key=`${nx.toFixed(2)},${nz.toFixed(2)},${sprint?1:0},${mods.shield?1:0},${mods.dummy?1:0}`,now=performance.now();if(key!==state.sentInput||now-state.lastInput>INPUT_MS*3){state.sentInput=key;state.lastInput=now;send({t:'i',x:nx,z:nz,s:sprint,h:Boolean(mods.shield),d:Boolean(mods.dummy)});}};
+    match.setInput=(x,z,sprint=false,mods={})=>{const len=Math.hypot(x,z),nx=len>1?x/len:x,nz=len>1?z/len:z;match.input={x:nx,z:nz,sprint,shield:Boolean(mods.shield),dummy:Boolean(mods.dummy),press:Boolean(mods.press)};const key=`${nx.toFixed(2)},${nz.toFixed(2)},${sprint?1:0},${mods.shield?1:0},${mods.dummy?1:0},${mods.press?1:0}`,now=performance.now();if(key!==state.sentInput||now-state.lastInput>INPUT_MS*3){state.sentInput=key;state.lastInput=now;send({t:'i',x:nx,z:nz,s:sprint,h:Boolean(mods.shield),d:Boolean(mods.dummy),pr:Boolean(mods.press)});}};
     match.kick=(type='shoot',power=.35,style='auto')=>{send({t:'k',type,power,style,aim:{x:match.input.x,z:match.input.z}});match.charge=null;return true;};
     match.startHeader=(player,kind='shoot')=>{send({t:'k',type:kind==='pass'?'pass':'shoot',power:.5,style:'auto',aim:{x:match.input.x,z:match.input.z}});return true;};
     match.standTackle=()=>{send({t:'tk',slide:false});return true;};

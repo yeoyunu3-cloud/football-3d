@@ -1,26 +1,26 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261114-runs2';
-import {fillEventRow} from './event-format.js?v=20261114-runs2';
-import {createOnline,validRoomName} from './online.js?v=20261114-runs2';
-import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261114-runs2';
-import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261114-runs2';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261114-runs2';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261114-runs2';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261114-runs2';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261114-runs2';
-import {paintKit} from './kit-art.js?v=20261114-runs2';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261114-runs2';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261114-runs2';
-import {netOffset} from './goal-effects.js?v=20261114-runs2';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261114-runs2';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261115-def1';
+import {fillEventRow} from './event-format.js?v=20261115-def1';
+import {createOnline,validRoomName} from './online.js?v=20261115-def1';
+import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261115-def1';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261115-def1';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261115-def1';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261115-def1';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261115-def1';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261115-def1';
+import {paintKit} from './kit-art.js?v=20261115-def1';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261115-def1';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261115-def1';
+import {netOffset} from './goal-effects.js?v=20261115-def1';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261115-def1';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261114-runs2';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261114-runs2';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261114-runs2';
-import { saveMatch } from './squads.js?v=20261114-runs2';
-import { notify,textNode } from './ui.js?v=20261114-runs2';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261114-runs2';
-import {officialStep,celebrationPose} from './presentation.js?v=20261114-runs2';
-import { keeperPose } from './keeper.js?v=20261114-runs2';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261115-def1';
+import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261115-def1';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261115-def1';
+import { saveMatch } from './squads.js?v=20261115-def1';
+import { notify,textNode } from './ui.js?v=20261115-def1';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261115-def1';
+import {officialStep,celebrationPose} from './presentation.js?v=20261115-def1';
+import { keeperPose } from './keeper.js?v=20261115-def1';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -380,7 +380,7 @@ function sampleInput(){
   if(homeOpen||match.mode==='manager'){match.setInput(0,0);return;}
   const input=movement(keys,controlPreset,match.restart?.type==='throw'&&match.selected===match.restart.taker);
   // C held with the ball (no kick charging) shields; Z held while a pass is coming lets it run through.
-  match.setInput(input.x+joy.x,input.z+joy.y,input.sprint||touchSprint,{shield:keys.has('c')&&!match.charge,dummy:keys.has('z')&&!match.charge&&match.owner!==match.selected});
+  match.setInput(input.x+joy.x,input.z+joy.y,input.sprint||touchSprint,{shield:keys.has('c')&&!match.charge,dummy:keys.has('z')&&!match.charge&&match.owner!==match.selected,press:actionContext().defending&&keys.has(controls().tackle??' ')});
 }
 const focus=new THREE.Vector3(),cameraTarget=new THREE.Vector3(),cameraPosition=new THREE.Vector3();
 let setPieceView=null,frameDistance=40;

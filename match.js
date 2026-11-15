@@ -1,23 +1,23 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261114-runs2';
-import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261114-runs2';
-import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261114-runs2';
-import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261114-runs2';
-import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261114-runs2';
-import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261114-runs2';
-import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261114-runs2';
-import {shapeTarget} from './formation-shape.js?v=20261114-runs2';
-import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261114-runs2';
-import {attackPlan,attackPosition} from './attacking.js?v=20261114-runs2';
-import {planThroughPass} from './through-pass.js?v=20261114-runs2';
-import {planCelebration,celebrationStep} from './celebration-route.js?v=20261114-runs2';
-import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261114-runs2';
-import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261114-runs2';
-import {flightStep,planShot} from './ball-flight.js?v=20261114-runs2';
-import {stepGoalBall} from './goal-effects.js?v=20261114-runs2';
-import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261114-runs2';
-import {Shootout} from './shootout.js?v=20261114-runs2';
-import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261114-runs2';
-import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261114-runs2';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261115-def1';
+import {DEFAULT_ARCHETYPES,DEFAULT_SPECIALS,traits,heightOf,weightOf,hasTrait,strengthOf,aerialOf} from './player-traits.js?v=20261115-def1';
+import {observeAction,observeCarry,observeLoss,adaptDefense} from './opponent-adaptation.js?v=20261115-def1';
+import {teamShapeTarget,updateAutoRuns} from './team-shape.js?v=20261115-def1';
+import {buildWall,releaseWall,updateWallJumps} from './restart-wall.js?v=20261115-def1';
+import {isHumanKeeper,startKeeperRelease,stepKeeperRelease} from './keeper-control.js?v=20261115-def1';
+import {variation,hashSeed,CELEBRATIONS} from './match-variation.js?v=20261115-def1';
+import {shapeTarget} from './formation-shape.js?v=20261115-def1';
+import {coordinateTeam,coverTarget,openSupport,bestOutlet,shootingWindow} from './team-ai.js?v=20261115-def1';
+import {attackPlan,attackPosition} from './attacking.js?v=20261115-def1';
+import {planThroughPass} from './through-pass.js?v=20261115-def1';
+import {planCelebration,celebrationStep} from './celebration-route.js?v=20261115-def1';
+import {TACTIC_OPTIONS,tacticValue,passSafety,dribbleTarget} from './tactics.js?v=20261115-def1';
+import {keeperTarget,keeperCanHandle} from './keeper-tactics.js?v=20261115-def1';
+import {flightStep,planShot} from './ball-flight.js?v=20261115-def1';
+import {stepGoalBall} from './goal-effects.js?v=20261115-def1';
+import {MATCH_SECONDS,HALF_SECONDS,CLOCK_SCALE,resetClock,advanceClock,regulationText,addedInfo} from './match-clock.js?v=20261115-def1';
+import {Shootout} from './shootout.js?v=20261115-def1';
+import {DRAWABLE_RESTARTS,planSetPiece} from './setpieces.js?v=20261115-def1';
+import {predictBall,updateKeeper,tryKeeperSave,keeperContacts,sweepDistance3,chooseKeeperAction} from './keeper.js?v=20261115-def1';
 export const FORMATION = [[-48,0],[-29,-24],[-33,-8],[-33,8],[-29,24],[-14,-24],[-19,-8],[-16,9],[-11,24],[-2,-6],[-6,9]];
 export const ROLES = ['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'];
 export const NAMES = ['강지후','윤태오','서준혁','이시우','문하람','정이든','백도현','류건우','오선율','한도윤','차유진'];
@@ -330,7 +330,7 @@ export class Match {
     const values=key==='mentality'?['defensive','balanced','attacking']:key==='pressure'?['low','balanced','high']:(TACTIC_OPTIONS[key]??[]).map(([value])=>value);
     if(values.includes(value))this.tactics[team][key]=value;
   }
-  setInput(x,z,sprint=false,mods={}){const len=Math.hypot(x,z),nx=len>1?x/len:x,nz=len>1?z/len:z;if(Math.abs(nx-this.input.x)>.05||Math.abs(nz-this.input.z)>.05)this.inputRevision=(this.inputRevision??0)+1;this.input={x:nx,z:nz,sprint,shield:Boolean(mods.shield),dummy:Boolean(mods.dummy)};}
+  setInput(x,z,sprint=false,mods={}){const len=Math.hypot(x,z),nx=len>1?x/len:x,nz=len>1?z/len:z;if(Math.abs(nx-this.input.x)>.05||Math.abs(nz-this.input.z)>.05)this.inputRevision=(this.inputRevision??0)+1;this.input={x:nx,z:nz,sprint,shield:Boolean(mods.shield),dummy:Boolean(mods.dummy),press:Boolean(mods.press)};}
   switchPlayer() {
     if(this.mode==='manager'||this.phase==='shootout')return;
     if(this.restart?.manual){const r=this.restart;if(r.type==='penalty')return;const options=this.players.filter(p=>p.team===0&&p.index>0&&!p.sentOff&&p.id!==r.taker).sort((a,b)=>distance(a,r)-distance(b,r)).map(p=>p.id);options.push(r.taker);this.selected=options[(options.indexOf(this.selected)+1)%options.length];this.charge=null;return;}
@@ -436,7 +436,7 @@ export class Match {
     const roll=(this.random??Math.random)(),d=distance(p,this.ball);
     p.tackleAnim=.42;p.tackleCooldown=.8;p.heading=Math.atan2(this.ball.x-p.x,this.ball.z-p.z);if(!player){this.charge=null;this.pending=null;}
     const wild=hasTrait(p,'wildTackler');
-    if(d>(wild?2.9:2.2)){p.vx*=.35;p.vz*=.35;return true;}
+    if(d>(wild?2.9:2.2)){p.tackleAnim=.3;p.tackleCooldown=.45;p.vx*=.75;p.vz*=.75;return true;}
     const front=(p.x-victim.x)*Math.sin(victim.heading)+(p.z-victim.z)*Math.cos(victim.heading);
     if(front<-.35){if(roll<(wild?.3:.6)){this.foul(p,victim,6+roll*5);return true;}p.vx*=.35;p.vz*=.35;return true;}
     if(roll>clamp(1-d*.35,.25,.75)+(wild?.12:0)+(hasTrait(p,'fighter')?.1:0)){p.vx*=.35;p.vz*=.35;return true;}
@@ -444,6 +444,20 @@ export class Match {
     else{const b=this.ball,dx=b.x-victim.x,dz=b.z-victim.z,len=Math.hypot(dx,dz)||1;this.owner=-1;Object.assign(b,{vx:dx/len*5+p.vx*.4,vz:dz/len*5+p.vz*.4,vy:.4,y:.34,shotFlight:null,flightDrag:.9,curveRemaining:0});this.noCatch=0;}
     victim.controlCooldown=.55;victim.vx*=.4;victim.vz*=.4;this.lastTouch=p.id;this.offside=null;this.directRestart=null;this.receiver=-1;this.receiveAssist=0;this.recordEvent('interception',p.team,p.id);
     if(p.team===0){this.selected=p.id;this.manualSelection=false;}return true;
+  }
+  // Human defending moves. C (hold) jockey: face the carrier, stay goal-side about 1.8 m off him and shuffle
+  // sideways at reduced speed (C + E is a faster sprint jockey); the stick nudges the position.
+  // D (hold) press: close down at speed to a spot just in front of the ball, between it and our goal.
+  // Neither one tackles: the challenge itself is D tap or Space (standTackle), or A to slide.
+  humanDefend(p,foe,input,dt){
+    const s=this.attackSign(p.team),gx=-s*52,gz=0,b=this.ball,strength=Math.hypot(input.x,input.z);
+    const ax=gx-b.x,az=gz-b.z,al=Math.hypot(ax,az)||1,ux=ax/al,uz=az/al;
+    let tx,tz,speed;
+    if(input.press&&!input.shield){tx=b.x+ux*.7;tz=b.z+uz*.7;speed=input.sprint&&p.stamina>2?9.6:8.4;}
+    else{const gap=1.8;tx=b.x+ux*gap+(strength>.09?input.x*2.2:0);tz=b.z+uz*gap+(strength>.09?input.z*2.2:0);speed=input.sprint&&p.stamina>2?7:4.8;}
+    this.movePlayer(p,tx,tz,speed,dt);
+    p.heading=turn(p.heading,Math.atan2(b.x-p.x,b.z-p.z),dt*(input.shield?16:10));
+    p.jockey=Boolean(input.shield);
   }
   // Sliding tackle (FC: A while defending). Commits to a line; ball first is clean, player first is a foul.
   slideTackle(player=null){
@@ -475,10 +489,8 @@ export class Match {
   }
   // 침투 (FC: Q, 1~4 angle): one attacker sprints in behind. angle is degrees across the attacker's view,
   // 0 = 왼쪽 터치라인 · 90 = 상대 골대 정면 · 180 = 오른쪽 터치라인. No angle runs at the goal behind the line.
-  // Q: send a teammate on a run and show his four run branches (1~4 redirect him). Each further Q calls off the
-  // current runner and sends the next teammate in a fixed cycle (A → B → C → A …), built when Q is first pressed
-  // for this carrier and ordered by role, how far forward, distance and the carrier's facing. A run lasts until
-  // he gets the ball, we lose it, Q switches it to the next player, or E + C.
+  // Q: the single teammate closest to the carrier sprints forward, and his four run branches show (1~4 redirect
+  // him). A run lasts until he gets the ball, we lose it, another Q sends a different (now closest) teammate, or E + C.
   openRunMenu(){return this.callRun('menu');}
   isCalledRunner(p){return (p?.calledUntil??0)>this.time;}
   callRun(angle=null){
@@ -490,17 +502,13 @@ export class Match {
     let runner=null;
     // A number key redirects the teammate whose branches are on screen.
     if(angle!=='menu'&&menu&&!menu.sentOff&&menu.id!==carrier.id)runner=menu;
+    // Q: only the single teammate closest to the carrier makes a forward run. Pressing Q again calls off
+    // the previous runner first, so at most one called run is live at a time.
     if(!runner){
-      const fx=Math.sin(carrier.heading),fz=Math.cos(carrier.heading);
-      if(!this.runCycle||this.runCycle.carrier!==carrier.id){
-        const order=this.players.filter(r=>r.team===0&&r.index>0&&!r.sentOff&&r.id!==carrier.id).map(r=>{const d=distance(r,carrier),facing=((r.x-carrier.x)*fx+(r.z-carrier.z)*fz)/(d||1);return {id:r.id,score:(roleBonus[r.role]??-6)+r.x*s*.2-Math.max(0,d-16)*.55+facing*3};}).sort((a,b)=>b.score-a.score).slice(0,5).map(e=>e.id);
-        this.runCycle={carrier:carrier.id,order,next:0,current:-1};
-      }
-      const cyc=this.runCycle;
-      // Call off the previous runner: he goes back to normal off-ball positioning.
-      const prev=this.players[cyc.current];if(prev&&this.isCalledRunner(prev)){prev.calledUntil=0;prev.runUntil=this.time;prev.runTarget=null;}
-      for(let k=0;k<cyc.order.length&&!runner;k++){const r=this.players[cyc.order[(cyc.next+k)%cyc.order.length]];if(r&&!r.sentOff&&r.id!==carrier.id&&r.id!==cyc.current){runner=r;cyc.next=(cyc.order.indexOf(r.id)+1)%cyc.order.length;}}
-      if(runner)cyc.current=runner.id;
+      runner=this.players.filter(r=>r.team===0&&r.index>0&&!r.sentOff&&r.id!==carrier.id).sort((a,b)=>distance(a,carrier)-distance(b,carrier))[0]??null;
+      const prev=this.runCycle?this.players[this.runCycle.current]:null;
+      if(prev&&prev!==runner&&this.isCalledRunner(prev)){prev.calledUntil=0;prev.runUntil=this.time;prev.runTarget=null;}
+      this.runCycle={carrier:carrier.id,current:runner?.id??-1};
     }
     if(!runner)return null;
     let dx,dz;
@@ -1079,14 +1087,14 @@ export class Match {
       const owner=this.players[this.owner];
       // A defender must approach from the ball side, not steal through the body.
       for(const p of this.players){
-        if(p.sentOff||p.team===owner.team||p.index===0||p.decision>0||(p.fooledUntil??0)>this.controlTime||(owner.skillImmuneUntil??0)>this.controlTime)continue;
+        if(p.sentOff||p.team===owner.team||p.index===0||this.isHumanControlled(p)||p.decision>0||(p.fooledUntil??0)>this.controlTime||(owner.skillImmuneUntil??0)>this.controlTime)continue;
         const d=distance(p,this.ball),front=(p.x-owner.x)*Math.sin(owner.heading)+(p.z-owner.z)*Math.cos(owner.heading);
         // The human carrier only loses the ball to a clear front-on challenge, and not every time.
-        if(this.isHumanControlled(owner)){if(this.possessionTime<.9||d>1||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22*strengthOf(p)/strengthOf(owner)*(this.shieldInput(owner)?.35:1)){p.stealCooldown=this.controlTime+1;continue;}}
+        if(this.isHumanControlled(owner)){if(this.possessionTime<.9||d>.72||front<.15||(p.stealCooldown??0)>this.controlTime)continue;if((this.random??Math.random)()>.22*strengthOf(p)/strengthOf(owner)*(this.shieldInput(owner)?.35:1)){p.stealCooldown=this.controlTime+1;continue;}}
         // Strong carriers shield the ball: a weaker challenger often bounces off.
-        else if(d<1.3&&front>-.05&&(p.stealCooldown??0)<=this.controlTime&&(this.random??Math.random)()<clamp((strengthOf(owner)-strengthOf(p))*1.1,0,.6)){p.stealCooldown=this.controlTime+.8;continue;}
+        else if(d<1&&front>-.05&&(p.stealCooldown??0)<=this.controlTime&&(this.random??Math.random)()<clamp((strengthOf(owner)-strengthOf(p))*1.1,0,.6)){p.stealCooldown=this.controlTime+.8;continue;}
         if((p.stealCooldown??0)>this.controlTime)continue;
-        if(d<1.3&&front>-.05){this.owner=p.id;this.offside=null;this.directRestart=null;this.lastTouch=p.id;this.possessionTime=0;p.decision=.38;this.receiver=-1;if(p.team===0&&this.mode==='player'){this.selected=p.id;this.manualSelection=false;}break;}
+        if(d<(this.isHumanControlled(owner)?.72:1)&&front>-.05){this.owner=p.id;this.offside=null;this.directRestart=null;this.lastTouch=p.id;this.possessionTime=0;p.decision=.38;this.receiver=-1;if(p.team===0&&this.mode==='player'){this.selected=p.id;this.manualSelection=false;}break;}
       }
     }
     for(const p of this.players){p.x=clamp(p.x,-54,54);p.z=clamp(p.z,-35.5,35.5);p.jostle=(p.jostle??0)*Math.exp(-dt*8);p.kickAnim=Math.max(0,p.kickAnim-dt);p.dive=Math.max(0,p.dive-dt);p.throwAnim=Math.max(0,(p.throwAnim??0)-dt);}
@@ -1126,7 +1134,7 @@ export class Match {
       if(this.receiver>=0&&this.receiveAssist>0&&p.id!==this.receiver&&p.team===this.players[this.receiver].team&&distance(this.players[this.receiver],b)<14)continue;
       if(p.sentOff||(p.controlCooldown??0)>0||b.y>1.5*(p.profile?.height??180)/180||this.noCatch>0&&p.id===this.lastTouch)continue;
       const start={x:before.x-(p.previousX??p.x),z:before.z-(p.previousZ??p.z)},end={x:b.x-p.x,z:b.z-p.z};
-      const d=segmentDistance({x:0,z:0},start,end),reach=p.id===this.receiver?1.45:1.05;
+      const d=segmentDistance({x:0,z:0},start,end),reach=p.id===this.receiver?1.35:.82;
       if(d<reach&&d<closest){candidate=p;closest=d;}
     }
     if(candidate){
@@ -1270,7 +1278,9 @@ export class Match {
         const toward=intercept?((intercept.x-p.x)*input.x+(intercept.z-p.z)*input.z)/(distance(p,intercept)||1):0;
         if(this.owner===p.id&&p.firstTouchRunUntil>this.time&&strength>.09&&(input.x*this.attackSign(p.team)<-.15||p.firstTouchTarget&&(p.firstTouchTarget.x-p.x)*input.x+(p.firstTouchTarget.z-p.z)*input.z<0)){p.firstTouchRunUntil=0;p.vx*=.3;p.vz*=.3;}
         const carry=this.owner===p.id&&p.firstTouchRunUntil>this.time&&p.firstTouchTarget&&(strength<.09||((p.firstTouchTarget.x-p.x)*input.x+(p.firstTouchTarget.z-p.z)*input.z)>0);
-        if(carry)this.movePlayer(p,p.firstTouchTarget.x,p.firstTouchTarget.z,9.2,dt);
+        const foe=this.owner>=0&&p.index!==0&&this.players[this.owner].team!==p.team?this.players[this.owner]:null;
+        if(foe&&(input.press||input.shield))this.humanDefend(p,foe,input,dt);
+        else if(carry)this.movePlayer(p,p.firstTouchTarget.x,p.firstTouchTarget.z,9.2,dt);
         else if(loose&&!assisted&&(distance(p,this.ball)<3.5||strength<.09||toward>.35)){this.movePlayer(p,intercept.x,intercept.z,distance(p,this.ball)<8?9.1:7.8,dt);}
         else if(strength>.09&&!assisted){this.movePlayer(p,p.x+input.x*10,p.z+input.z*10,speed*strength,dt,true);this.receiveAssist=0;}
         else if(assisted){const target=this.tacticalTarget(p,null,pressers);this.movePlayer(p,target.x,target.z,distance(p,this.ball)<8?9.1:8.2,dt);}
@@ -1279,7 +1289,9 @@ export class Match {
       }else if(this.remote&&p.id===this.remote.selected&&p.index!==0&&!this.restart){
         // Online guest: his selected player on the away team moves by his stick, like the local player's does.
         const input=this.remote.input,strength=Math.hypot(input.x,input.z),sprint=input.sprint&&p.stamina>2,speed=(sprint?10.2:7.2)*(this.owner===p.id?.96:1);
-        if(strength>.09)this.movePlayer(p,p.x+input.x*10,p.z+input.z*10,speed*Math.min(1,strength),dt,true);
+        const foe=this.owner>=0&&this.players[this.owner].team!==p.team?this.players[this.owner]:null;
+        if(foe&&(input.press||input.shield))this.humanDefend(p,foe,input,dt);
+        else if(strength>.09)this.movePlayer(p,p.x+input.x*10,p.z+input.z*10,speed*Math.min(1,strength),dt,true);
         else if(this.owner<0&&this.ball.y<4.5&&distance(p,this.ball)<6){const t=this.interceptTarget(p);this.movePlayer(p,t.x,t.z,9.1,dt);}
         else this.movePlayer(p,p.x,p.z,0,dt,true);
       }else if(p.id===this.owner)this.moveCarrierAI(p,dt);
