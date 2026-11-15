@@ -1,26 +1,26 @@
-import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261115-def1';
-import {fillEventRow} from './event-format.js?v=20261115-def1';
-import {createOnline,validRoomName} from './online.js?v=20261115-def1';
-import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261115-def1';
-import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261115-def1';
-import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261115-def1';
-import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261115-def1';
-import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261115-def1';
-import {locomotionPose,dampJoint} from './player-motion.js?v=20261115-def1';
-import {paintKit} from './kit-art.js?v=20261115-def1';
-import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261115-def1';
-import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261115-def1';
-import {netOffset} from './goal-effects.js?v=20261115-def1';
-import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261115-def1';
+import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261115-hud1';
+import {fillEventRow} from './event-format.js?v=20261115-hud1';
+import {createOnline,validRoomName} from './online.js?v=20261115-hud1';
+import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261115-hud1';
+import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261115-hud1';
+import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261115-hud1';
+import {VISUAL_SCALE,FIELD_SCALE,ballRenderY,followHeading} from './visual-scale.js?v=20261115-hud1';
+import {loadRealPlayerAssets,buildRealAthlete,applyRealAppearance,updateRealPlayer} from './real-player-model.js?v=20261115-hud1';
+import {locomotionPose,dampJoint} from './player-motion.js?v=20261115-hud1';
+import {paintKit} from './kit-art.js?v=20261115-hud1';
+import {KIT_PRESETS,resolveKitClash} from './kits.js?v=20261115-hud1';
+import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261115-hud1';
+import {netOffset} from './goal-effects.js?v=20261115-hud1';
+import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261115-hud1';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261115-def1';
-import {unlockBallSound,playTouch,playTrap,playKick} from './ball-sound.js?v=20261115-def1';
-import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261115-def1';
-import { saveMatch } from './squads.js?v=20261115-def1';
-import { notify,textNode } from './ui.js?v=20261115-def1';
-import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261115-def1';
-import {officialStep,celebrationPose} from './presentation.js?v=20261115-def1';
-import { keeperPose } from './keeper.js?v=20261115-def1';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261115-hud1';
+import {unlockBallSound,playTouch,playTrap,playKick,playCrowdRoar} from './ball-sound.js?v=20261115-hud1';
+import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261115-hud1';
+import { saveMatch } from './squads.js?v=20261115-hud1';
+import { notify,textNode } from './ui.js?v=20261115-hud1';
+import {DRAWABLE_RESTARTS,kickPreview} from './setpieces.js?v=20261115-hud1';
+import {officialStep,celebrationPose} from './presentation.js?v=20261115-hud1';
+import { keeperPose } from './keeper.js?v=20261115-hud1';
 const match = new Match();
 
 const $ = id => document.getElementById(id);
@@ -170,7 +170,7 @@ let previewRenderer=null,previewYaw=.12,previewDrag=null;
 try{previewRenderer=new THREE.WebGLRenderer({antialias:true,alpha:true});previewRenderer.setPixelRatio(Math.min(devicePixelRatio,1.5));previewRenderer.toneMapping=THREE.ACESFilmicToneMapping;previewRenderer.toneMappingExposure=1.1;previewRenderer.shadowMap.enabled=true;previewRenderer.shadowMap.type=THREE.PCFSoftShadowMap;$('player-preview').appendChild(previewRenderer.domElement);}catch{$('player-preview').textContent='3D 미리보기를 열 수 없습니다.';}
 let homeOpen=true,clubHome;
 document.body.classList.add('home-open');
-function applyRosterAppearance(){for(let i=0;i<11;i++)applyAppearance(players[i],match.players[i].profile,match.kit);const away=resolveKitClash(match.kit,match.awayKit??KIT_PRESETS.find(kit=>kit.id===(match.kit?.id==='psg-home'?'madrid-home':'psg-home')));for(let i=11;i<22;i++)applyAppearance(players[i],match.players[i].profile??{...match.players[i],height:i===11?190:180,weight:77,skin:['#e4b18f','#c18e69','#935b41'][i%3],hair:'#292329'},away);renderSelected=-2;}
+function applyRosterAppearance(){for(let i=0;i<11;i++)applyAppearance(players[i],match.players[i].profile,match.kit);const away=resolveKitClash(match.kit,match.awayKit??KIT_PRESETS.find(kit=>kit.id===(match.kit?.id==='psg-home'?'madrid-home':'psg-home')));for(let i=11;i<22;i++)applyAppearance(players[i],match.players[i].profile??{...match.players[i],height:i===11?190:180,weight:77,skin:['#e4b18f','#c18e69','#935b41'][i%3],hair:'#292329'},away);renderSelected=-2;teamKits=[match.kit??KIT_PRESETS[0],away];paintBadges();}
 function showHome(){
   archiveCurrent(match.ended?'finished':'abandoned');releaseInputs();match.reset();homeOpen=true;document.body.classList.add('home-open');$('home').hidden=false;$('result').classList.add('hidden');$('halftime').classList.add('hidden');clubHome.show();
 }
@@ -422,11 +422,68 @@ function cameraUpdate(dt,immediate=false){
   if(match.goalWait>0)cameraPosition.set(focus.x,28,focus.z+20);
   camera.position.lerp(cameraPosition,immediate?1:1-Math.exp(-dt*6));camera.lookAt(cameraTarget);
 }
-const map=$('map').getContext('2d');
+// ---- Broadcast HUD helpers ----
+let teamKits=[KIT_PRESETS[0],KIT_PRESETS[1]];
+const luminance=hex=>{const n=parseInt(String(hex??'#888').replace('#','').padEnd(6,'0').slice(0,6),16);return (.299*(n>>16&255)+.587*(n>>8&255)+.114*(n&255))/255;};
+// Short code shown on the scoreboard: three letters of a Latin name (initials or first letters), up to four syllables of a Korean one.
+function teamCode(name,fallback){
+  const text=String(name??'').trim();if(!text)return fallback;
+  const words=text.match(/[A-Za-z0-9]+/g);
+  if(words){const joined=words.length>=3?words.map(w=>w[0]).join(''):words.join('');return joined.slice(0,3).toUpperCase().padEnd(3,joined.at(-1)?.toUpperCase()??'X');}
+  return text.replace(/\s+/g,'').slice(0,4);
+}
+const teamName=team=>team===0?(match.squadName??'홈 팀'):(match.awaySquadName??'원정 팀');
+function paintBadges(){
+  for(const [team,kit] of teamKits.entries()){
+    const side=team===0?'home':'away',accent=kit?.accent??'#ffffff',shirt=kit?.shirt??'#888';
+    document.querySelectorAll(`.club.${side} .badge,.ft-team.${side} .badge`).forEach(el=>{el.style.setProperty('--kit',shirt);el.style.setProperty('--kit-accent',accent);});
+    document.documentElement.style.setProperty(`--team${team}`,luminance(shirt)>.82?accent:shirt);
+  }
+}
+const map=$('map').getContext('2d'),MAP_W=300,MAP_H=194;
+{const dpr=Math.min(2,window.devicePixelRatio||1);$('map').width=MAP_W*dpr;$('map').height=MAP_H*dpr;map.setTransform(dpr,0,0,dpr,0,0);}
 function drawMap(){
-  map.clearRect(0,0,252,164);map.strokeStyle='#678985';map.lineWidth=1;map.strokeRect(6,6,240,152);map.beginPath();map.moveTo(126,6);map.lineTo(126,158);map.stroke();map.beginPath();map.ellipse(126,82,21,21,0,0,Math.PI*2);map.stroke();map.strokeRect(6,37,37,90);map.strokeRect(209,37,37,90);
-  for(const p of match.players){if(p.sentOff)continue;map.beginPath();map.arc(6+(p.x+52.5)/105*240,6+(p.z+34)/68*152,p.id===match.selected?4.5:3,0,Math.PI*2);map.fillStyle=p.id===match.selected?'#c5f773':p.team===0?'#82a7ff':'#ed9879';map.fill();}
-  map.beginPath();map.arc(6+(match.ball.x+52.5)/105*240,6+(match.ball.z+34)/68*152,2.4,0,Math.PI*2);map.fillStyle='white';map.fill();
+  const pad=8,w=MAP_W-pad*2,h=MAP_H-pad*2,X=x=>pad+(x+52.5)/105*w,Z=z=>pad+(z+34)/68*h;
+  map.clearRect(0,0,MAP_W,MAP_H);
+  // Mown stripes and white lines, like a tactical cam overlay.
+  for(let i=0;i<10;i++){map.fillStyle=i%2?'rgba(64,140,82,.30)':'rgba(52,122,70,.30)';map.fillRect(pad+i*w/10,pad,w/10+.5,h);}
+  map.strokeStyle='rgba(255,255,255,.55)';map.lineWidth=1;map.strokeRect(pad,pad,w,h);
+  map.beginPath();map.moveTo(MAP_W/2,pad);map.lineTo(MAP_W/2,pad+h);map.stroke();
+  map.beginPath();map.arc(MAP_W/2,MAP_H/2,9.15/105*w,0,Math.PI*2);map.stroke();
+  const boxW=16.5/105*w,boxH=40.3/68*h,sixW=5.5/105*w,sixH=18.3/68*h;
+  for(const left of [true,false]){const x0=left?pad:pad+w-boxW,x1=left?pad:pad+w-sixW;map.strokeRect(x0,MAP_H/2-boxH/2,boxW,boxH);map.strokeRect(x1,MAP_H/2-sixH/2,sixW,sixH);}
+  const colors=teamKits.map(kit=>kit?.shirt??'#888');
+  for(const p of match.players){if(p.sentOff)continue;const x=X(p.x),y=Z(p.z),sel=p.id===match.selected&&match.mode==='player',color=colors[p.team],light=luminance(color)>.6;
+    if(sel){map.save();map.translate(x,y);map.rotate(-p.heading+Math.PI/2);map.beginPath();map.moveTo(10,0);map.lineTo(5,-3.6);map.lineTo(5,3.6);map.closePath();map.fillStyle='#e8ff5a';map.fill();map.restore();
+      map.beginPath();map.arc(x,y,7.2,0,Math.PI*2);map.fillStyle='rgba(232,255,90,.22)';map.fill();}
+    map.beginPath();map.arc(x,y,sel?4.6:3.6,0,Math.PI*2);map.fillStyle=color;map.fill();map.lineWidth=sel?2:1.3;map.strokeStyle=sel?'#e8ff5a':light?'rgba(10,20,30,.9)':'rgba(255,255,255,.95)';map.stroke();
+    if(p.index===0){map.beginPath();map.arc(x,y,1.3,0,Math.PI*2);map.fillStyle=light?'#111':'#fff';map.fill();}}
+  const bx=X(match.ball.x),by=Z(match.ball.z);map.beginPath();map.arc(bx,by,2.8,0,Math.PI*2);map.fillStyle='#fff';map.fill();map.lineWidth=1.2;map.strokeStyle='#101418';map.stroke();
+}
+// GOAL! banner and crowd roar, once per goal (a goal replay does not change the score, so it never fires twice).
+let goalBannerTimer=null;
+function showGoalBanner(){
+  const goal=[...match.events].reverse().find(e=>e.type==='goal');if(!goal)return;
+  const banner=$('goal-banner'),team=goal.team;banner.dataset.team=String(team);
+  banner.querySelector('.badge').style.setProperty('--kit',teamKits[team]?.shirt??'#888');banner.querySelector('.badge').style.setProperty('--kit-accent',teamKits[team]?.accent??'#fff');
+  $('gb-team').textContent=teamCode(teamName(team),team===0?'HOM':'AWY');
+  $('gb-scorer').textContent=`${goal.ownGoal?'자책골 · ':''}${goal.number??''} ${goal.name??''}`.trim()+(goal.time?`  ${goal.time}`:'');
+  $('gb-score').textContent=`${match.score[0]} - ${match.score[1]}`;
+  banner.querySelector('.gb-word').textContent=goal.ownGoal?'OWN GOAL':'GOAL';
+  banner.hidden=false;banner.classList.remove('show');void banner.offsetWidth;banner.classList.add('show');
+  clearTimeout(goalBannerTimer);goalBannerTimer=setTimeout(()=>{banner.hidden=true;banner.classList.remove('show');},4600);
+  playCrowdRoar(goal.team===0||match.mode==='manager'?1:.75);
+}
+function fillResult(){
+  for(const team of [0,1]){const el=document.querySelector(`.ft-team.${team===0?'home':'away'}`);el.querySelector('.code').textContent=teamCode(teamName(team),team===0?'HOM':'AWY');el.querySelector('.name').textContent=teamName(team);}
+  $('ft-home').textContent=match.score[0];$('ft-away').textContent=match.score[1];
+  const scorers=$('ft-scorers');scorers.replaceChildren();
+  for(const team of [0,1]){const col=document.createElement('ul');col.className=`ft-goals team${team}`;for(const g of match.events.filter(e=>e.type==='goal'&&e.team===team)){const li=document.createElement('li');li.textContent=`${g.name||'선수'}${g.ownGoal?' (자책)':''} ${g.time??''}`;col.append(li);}scorers.append(col);}
+  const st=match.stats,total=st.possession[0]+st.possession[1],pos=total?Math.round(st.possession[0]/total*100):50;
+  const rows=[['점유율',pos,100-pos,'%'],['슈팅',st.shots[0],st.shots[1],''],['패스',st.passes[0],st.passes[1],''],['선방',st.saves[0],st.saves[1],'']];
+  const host=$('ft-stats');host.replaceChildren();
+  for(const [label,a,b,unit] of rows){const row=document.createElement('div');row.className='ft-stat';const sum=a+b||1;
+    row.innerHTML=`<b>${a}${unit}</b><span class="ft-label"></span><b>${b}${unit}</b><div class="ft-bars"><i class="home" style="width:${a/sum*100}%"></i><i class="away" style="width:${b/sum*100}%"></i></div>`;row.querySelector('.ft-label').textContent=label;host.append(row);}
 }
 let keeperGuide=false;
 function syncHUD(){
@@ -444,7 +501,7 @@ function syncHUD(){
   updateMatchPanels();
   if(match.ended)archiveCurrent('finished');
   const clock=match.regulationDisplayTime+(match.paused?' · 정지':'');const added=match.addedTimeInfo;$('added-time').hidden=!added||match.phase==='shootout'||match.ended;if(added)$('added-time').textContent=`+${added.minutes}분 · 진행 ${added.elapsed}`;document.body.classList.toggle('has-added-time',Boolean(added));$('penalties-score').hidden=!match.shootout;if(match.shootout)$('penalties-score').textContent=`PK ${match.shootout.score.join(' : ')}`;
-  const clubs=document.querySelectorAll('.matchbar .club span');clubs[0].textContent=match.squadName??'홈 팀';clubs[1].textContent=match.awaySquadName??'원정 팀';
+  const codes=document.querySelectorAll('.matchbar .club .code');codes[0].textContent=teamCode(teamName(0),'HOM');codes[1].textContent=teamCode(teamName(1),'AWY');codes[0].title=teamName(0);codes[1].title=teamName(1);
   $('period').textContent=match.ended?'경기 종료':match.phase==='halftime'?'하프타임':match.phase==='shootout'?'승부차기':match.half===1?'전반':'후반';
   document.body.classList.toggle('shootout-mode',match.phase==='shootout');$('attack-direction').textContent=match.phase==='shootout'?`승부차기 · ${match.shootout.turn===0?'우리 팀 킥':'우리 팀 수비'}`:match.attackSign(0)>0?'홈 팀 → 오른쪽 골대':'홈 팀 ← 왼쪽 골대';
   if(match.phase==='halftime'){
@@ -454,14 +511,14 @@ function syncHUD(){
   }else $('halftime').classList.add('hidden');
   document.body.classList.toggle('super-save',match.highlight?.kind==='save');document.body.classList.toggle('goal-moment',match.highlight?.kind==='goal');
   if(clock!==lastClock){$('clock').textContent=clock;lastClock=clock;}
-  const score=match.score.join(':');if(score!==lastScore){$('home-score').textContent=match.score[0];$('away-score').textContent=match.score[1];lastScore=score;}
+  const score=match.score.join(':');if(score!==lastScore){const before=lastScore?lastScore.split(':').map(Number):null;$('home-score').textContent=match.score[0];$('away-score').textContent=match.score[1];lastScore=score;if(before&&match.score[0]+match.score[1]>before[0]+before[1]&&match.phase!=='shootout')showGoalBanner();}
   if(lastEvent!==match.event){message('');lastEvent=match.event;}
   if(match.ended&&$('result').classList.contains('hidden')){
     $('result').classList.remove('hidden');const winner=match.winner??(match.score[0]>match.score[1]?0:1);
     $('result-title').textContent=match.forfeit!==null?(match.forfeit===0?'패배 · 몰수':'승리 · 몰수'):`${winner===0?'승리':'패배'}${match.shootout?' · 승부차기':''}`;
-    $('result-score').textContent=`홈 ${match.score[0]} : ${match.score[1]} 원정${match.shootout?`\n승부차기\n${match.shootout.score.join(' : ')}`:''}`;releaseInputs();
+    $('result-score').textContent=match.shootout?`승부차기 ${match.shootout.score.join(' - ')}`:'';fillResult();releaseInputs();
   }
-  $('stamina').style.width=`${match.players[match.mode==='manager'&&match.owner>=0?match.owner:match.selected].stamina}%`;
+  const stamina=match.players[match.mode==='manager'&&match.owner>=0?match.owner:match.selected].stamina;$('stamina').style.width=`${stamina}%`;$('stamina').dataset.level=stamina<30?'low':stamina<60?'mid':'high';
 }
 const archived=new Set();let panelSignature='',sideView='players',shownRestart=null,rosterBeforeRestart=true;
 function archiveCurrent(status){
@@ -631,6 +688,12 @@ function renderRooms(rooms){
 }
 function toggleControls(force){const on=force??!document.body.classList.contains('show-controls');document.body.classList.toggle('show-controls',on);$('controls-toggle').setAttribute('aria-expanded',String(on));}
 $('controls-toggle').onclick=()=>toggleControls();
+// Title screen: shown once per visit, any key or click goes on to the home screen (and unlocks audio).
+{const title=$('title-screen');let gone=false;
+ const leave=e=>{if(gone)return;if(e?.type==='keydown'&&['Tab','Shift','Control','Alt','Meta'].includes(e.key))return;gone=true;e?.preventDefault?.();e?.stopImmediatePropagation?.();unlockBallSound();title.classList.add('leaving');setTimeout(()=>title.remove(),650);removeEventListener('keydown',leave,true);};
+ addEventListener('keydown',leave,true);title.addEventListener('pointerdown',leave);$('title-start').addEventListener('click',leave);}
+// ?debug in the address exposes the match object to the browser console for testing.
+if(new URLSearchParams(location.search).has('debug'))window.__match=match;
 var online=createOnline({match,onRooms:renderRooms,onLobbyState:state=>{$('lobby-state').textContent={directory:'연결됨',client:'연결됨',reconnecting:'다시 연결 중…',unavailable:'방 목록을 불러올 수 없습니다'}[state]??'';},getClub:()=>sanitizeClub({...clubHome.club,name:clubHome.squadName??clubHome.club.name}),
   launch(role,homeClub,awayClub){onlineDialog.close();applyClub(match,sanitizeClub(homeClub),0);clubHome.start('player',{opponent:sanitizeClub(awayClub)});},
   onStatus:onlineStatus,

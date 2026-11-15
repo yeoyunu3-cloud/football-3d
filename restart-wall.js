@@ -1,4 +1,4 @@
-import {predictBall} from './keeper.js?v=20261115-def1';
+import {predictBall} from './keeper.js?v=20261115-hud1';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export function buildWall(m,r){
  r.wallIds=[];if(!['freeKick','indirect'].includes(r.type)||r.x*m.attackSign(r.team)<10)return;

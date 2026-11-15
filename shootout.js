@@ -1,6 +1,6 @@
-import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261115-def1';
-import {stepGoalBall} from './goal-effects.js?v=20261115-def1';
-import {chooseKeeperAction,updateKeeper,tryKeeperSave} from './keeper.js?v=20261115-def1';
+import {FIELD_SCALE,FIELD_GRAVITY} from './visual-scale.js?v=20261115-hud1';
+import {stepGoalBall} from './goal-effects.js?v=20261115-hud1';
+import {chooseKeeperAction,updateKeeper,tryKeeperSave} from './keeper.js?v=20261115-hud1';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export class Shootout {
   constructor(players,{firstTeam=0,random=Math.random}={}){
