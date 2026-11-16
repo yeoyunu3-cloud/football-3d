@@ -1343,3 +1343,31 @@ export class Match {
   }
 }
 Match.NET_KEYS=['x','z','vx','vz','heading','stride','kickAnim','jump','dive','diveHeight','tackleAnim','throwAnim','jostle','celebration','celebrationLift','stamina','trap'];
+
+// ---- Law 12 keeper rules (from the rules videos): back-pass and six-second hold both give the opponent an indirect free kick. ----
+{
+  const baseStep=Match.prototype.step;
+  const indirectAtKeeper=(m,k,label)=>{
+    const s=m.attackSign(k.team),inGoalArea=Math.abs(k.z)<9.16&&k.x*s<-47;
+    const x=inGoalArea?-47*s:k.x,z=k.z;
+    k.holdingBall=false;k.keeperAction=null;k.distribution=null;k.holdSince=null;m.owner=-1;m.ball.vx=m.ball.vz=m.ball.vy=0;m.ball.x=x;m.ball.z=z;
+    m.setupRestart('indirect',1-k.team,x,z);m.event=label;m.recordEvent?.('foul',k.team,k.id,{kind:label});
+  };
+  Match.prototype.step=function(dt){
+    if(this.netGuest||!this.running||this.paused||this.ended||this.phase!=='play'||this.restart)return baseStep.call(this,dt);
+    const keepers=[this.players[0],this.players[11]],before=keepers.map(k=>k.holdingBall),kicker=this.lastTouch>=0?this.players[this.lastTouch]:null,lk=this.lastKick;
+    baseStep.call(this,dt);
+    if(this.restart||this.phase!=='play')return;
+    keepers.forEach((k,i)=>{
+      if(!k.holdingBall||k.sentOff){k.holdSince=null;return;}
+      if(!before[i]){
+        k.holdSince=this.controlTime;
+        const deliberate=kicker&&kicker.id!==k.id&&kicker.team===k.team&&kicker.index>0&&!kicker.sentOff&&lk?.team===k.team&&['pass','through','cross','loft','clearance'].includes(lk.type);
+        if(deliberate)indirectAtKeeper(this,k,'백패스 반칙');
+      }else if(k.holdSince==null){k.holdSince=this.controlTime;
+      }else if(this.controlTime-k.holdSince>6&&!k.distribution){
+        indirectAtKeeper(this,k,'골키퍼 6초 초과');
+      }
+    });
+  };
+}

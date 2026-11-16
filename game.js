@@ -13,7 +13,7 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261115-hud1';
 import {netOffset} from './goal-effects.js?v=20261115-hud1';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261115-hud1';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261116-net3';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261116-rules2';
 import {unlockBallSound,playTouch,playTrap,playKick,playCrowdRoar} from './ball-sound.js?v=20261115-hud1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261115-hud1';
 import { saveMatch } from './squads.js?v=20261115-hud1';
@@ -474,7 +474,7 @@ function showGoalBanner(){
   banner.querySelector('.gb-word').textContent=goal.ownGoal?'OWN GOAL':'GOAL';
   banner.hidden=false;banner.classList.remove('show');void banner.offsetWidth;banner.classList.add('show');
   clearTimeout(goalBannerTimer);goalBannerTimer=setTimeout(()=>{banner.hidden=true;banner.classList.remove('show');},4600);
-  playCrowdRoar(goal.team===0||match.mode==='manager'?1:.75);
+  /* crowd roar removed on request */
 }
 function fillResult(){
   for(const team of [0,1]){const el=document.querySelector(`.ft-team.${team===0?'home':'away'}`);el.querySelector('.code').textContent=teamCode(teamName(team),team===0?'HOM':'AWY');el.querySelector('.name').textContent=teamName(team);}
