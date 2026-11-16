@@ -577,10 +577,36 @@ export class Match {
       stats:this.stats,shootout:this.phase==='shootout'&&this.shootout?{turn:this.shootout.turn,stage:this.shootout.stage,score:this.shootout.score,attempts:this.shootout.attempts,kicks:this.shootout.kicks,winner:this.shootout.winner,wait:this.shootout.wait,aim:this.shootout.aim,kicker:this.shootout.kicker,committed:this.shootout.committed,keeperChoice:this.shootout.keeperChoice}:null};
   }
   // Guest side: the match object is a puppet that eases toward the host's latest snapshot instead of simulating.
+  // The guest keeps the last snapshots and draws everything ~100 ms in the past, interpolating between two of them, so
+  // network jitter (ping spikes) never shows as stutter. His own player is predicted locally from his input and
+  // only nudged toward the host's authoritative position, so his controls respond at once instead of after the round trip.
+  netPush(d){const now=performance.now();(this.netBuf??=[]).push({t:now,d});if(this.netBuf.length>12)this.netBuf.shift();this.netState=d;this.netAt=now;}
   applyNet(dt){
-    const n=this.netState;if(!n)return;const ease=1-Math.exp(-dt*20);
-    this.players.forEach((p,i)=>{const f=n.players[i],far=Math.hypot(f.x-p.x,f.z-p.z)>4;const x=far?f.x:p.x+(f.x-p.x)*ease,z=far?f.z:p.z+(f.z-p.z)*ease;Object.assign(p,f);p.x=x;p.z=z;p.slide=f.slide??null;p.aerial=f.aerial??null;p.keeperAction=f.keeperAction??null;p.skill=null;p.wallUntil=f.wall?Infinity:0;});
-    const b=this.ball,far=Math.hypot(n.ball.x-b.x,n.ball.z-b.z)>5;Object.assign(b,{x:far?n.ball.x:b.x+(n.ball.x-b.x)*ease,y:far?n.ball.y:b.y+(n.ball.y-b.y)*ease,z:far?n.ball.z:b.z+(n.ball.z-b.z)*ease,vx:n.ball.vx,vy:n.ball.vy,vz:n.ball.vz});
+    const n=this.netState;if(!n)return;const buf=this.netBuf??[],now=performance.now(),rt=now-100;
+    let A=buf[0],B=buf[0];for(let i=0;i<buf.length;i++){if(buf[i].t<=rt){A=buf[i];B=buf[Math.min(i+1,buf.length-1)];}}
+    const span=B.t-A.t,al=span>0?Math.min(1,Math.max(0,(rt-A.t)/span)):1,over=Math.min(.15,Math.max(0,(rt-B.t)/1000));
+    const lerp=(p,q)=>p+(q-p)*al,own=this.selected,mine=n.selected>=0?n.selected:-1,inp=this.input;
+    this.players.forEach((p,i)=>{
+      const f=n.players[i],fa=A.d.players[i],fb=B.d.players[i];
+      const hx=lerp(fa.x,fb.x)+(al>=1?fb.vx*over:0),hz=lerp(fa.z,fb.z)+(al>=1?fb.vz*over:0);
+      const px=p.x,pz=p.z;Object.assign(p,f);p.slide=f.slide??null;p.aerial=f.aerial??null;p.keeperAction=f.keeperAction??null;p.skill=null;p.wallUntil=f.wall?Infinity:0;
+      if(i===mine&&this.netPred&&inp&&this.running&&!this.paused){
+        // Own player: predict from input, then pull gently toward the host's latest position.
+        const P=this.netPred,strength=Math.min(1,Math.hypot(inp.x,inp.z)),sp=(inp.sprint&&f.stamina>2?10.2:7.2)*(n.owner===i?.96:1)*strength,len=Math.hypot(inp.x,inp.z)||1;
+        const tvx=inp.x/len*sp,tvz=inp.z/len*sp,dvx=tvx-P.vx,dvz=tvz-P.vz,dd=Math.hypot(dvx,dvz),k=dd>0?Math.min(1,48*dt/dd):1;
+        P.vx+=dvx*k;P.vz+=dvz*k;P.x+=P.vx*dt;P.z+=P.vz*dt;
+        const ex=f.x+f.vx*.08-P.x,ez=f.z+f.vz*.08-P.z,err=Math.hypot(ex,ez);
+        if(err>3){P.x=f.x;P.z=f.z;P.vx=f.vx;P.vz=f.vz;}else{const g=Math.min(1,dt*5);P.x+=ex*g;P.z+=ez*g;P.vx+=(f.vx-P.vx)*Math.min(1,dt*3);P.vz+=(f.vz-P.vz)*Math.min(1,dt*3);}
+        p.x=P.x;p.z=P.z;p.vx=P.vx;p.vz=P.vz;
+      }else{
+        const far=Math.hypot(hx-px,hz-pz)>6;p.x=far?hx:hx;p.z=far?hz:hz;
+        if(i===mine)this.netPred={x:f.x,z:f.z,vx:f.vx,vz:f.vz};
+      }
+    });
+    if(this.netPred&&mine>=0&&!this.players[mine])this.netPred=null;
+    if(mine<0)this.netPred=null;
+    const b=this.ball,nb=n.ball,ba=A.d.ball,bb=B.d.ball;
+    Object.assign(b,{x:lerp(ba.x,bb.x)+(al>=1?bb.vx*over:0),y:Math.max(.34,lerp(ba.y,bb.y)+(al>=1?bb.vy*over:0)),z:lerp(ba.z,bb.z)+(al>=1?bb.vz*over:0),vx:nb.vx,vy:nb.vy,vz:nb.vz});
     for(const k of ['owner','score','half','remaining','time','controlTime','addedTime','phase','goalWait','event','running','paused','ended','winner','celebratingPlayer','celebrationTeam','notice','highlight','goalNet','restart','stats'])this[k]=n[k];
     this.selected=n.selected>=0?n.selected:this.selected;this.kickoffState=n.kickoff?(this.kickoffState??{remaining:1}):null;if(n.phase==='shootout'&&n.shootout)this.shootout=Object.assign(this.shootout??{},n.shootout);
   }

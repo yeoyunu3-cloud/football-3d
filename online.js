@@ -2,7 +2,7 @@
 //  - The host creates a room (name + optional password) and runs the whole match as the home team.
 //  - The guest joins by room name, plays the away team, sends inputs and draws the host's snapshots.
 // The PeerJS cloud is used only to introduce the two browsers to each other (the room name is sent to it).
-const PEER_SRC='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',PREFIX='football3d-room-',SNAPSHOT_MS=50,INPUT_MS=90,SILENCE_MS=8000;
+const PEER_SRC='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',PREFIX='football3d-room-',SNAPSHOT_MS=33,INPUT_MS=40,SILENCE_MS=8000;
 const roomId=name=>PREFIX+String(name).trim().toLowerCase().replace(/[^a-z0-9가-힣_-]/g,'').replace(/[가-힣]/g,c=>c.charCodeAt(0).toString(36));
 export const validRoomName=name=>/^[a-zA-Z0-9가-힣_-]{2,20}$/.test(String(name).trim());
 // Same-computer test path: a room whose name starts with "local-" links two tabs of one browser through a
@@ -81,7 +81,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
         conn.on('data',message=>{
           if(message?.t==='reject'){clearTimeout(timeout);fail(message.reason??'입장이 거부되었습니다.');return;}
           if(message?.t==='welcome'){clearTimeout(timeout);done=true;state.role='guest';launch('guest',message.club,getClub());becomePuppet();status('방에 들어왔습니다. 원정 팀으로 플레이합니다.','ok');resolve();return;}
-          if(message?.t==='s'&&state.role==='guest'){match.netState=message.d;state.lastSeen=performance.now();}
+          if(message?.t==='s'&&state.role==='guest'){match.netPush(message.d);state.lastSeen=performance.now();}
         });
         conn.on('close',()=>{if(state.role==='guest')close('방장과의 연결이 끊겼습니다.');else fail('연결이 끊겼습니다.');});
       };

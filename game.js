@@ -1,6 +1,6 @@
 import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261115-hud1';
 import {fillEventRow} from './event-format.js?v=20261115-hud1';
-import {createOnline,validRoomName} from './online.js?v=20261115-hud1';
+import {createOnline,validRoomName} from './online.js?v=20261116-net2';
 import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261115-hud1';
 import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261115-hud1';
 import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261115-hud1';
@@ -13,7 +13,7 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261115-hud1';
 import {netOffset} from './goal-effects.js?v=20261115-hud1';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261115-hud1';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261115-hud1';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261116-net2';
 import {unlockBallSound,playTouch,playTrap,playKick,playCrowdRoar} from './ball-sound.js?v=20261115-hud1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261115-hud1';
 import { saveMatch } from './squads.js?v=20261115-hud1';
@@ -174,9 +174,11 @@ function applyRosterAppearance(){for(let i=0;i<11;i++)applyAppearance(players[i]
 function showHome(){
   archiveCurrent(match.ended?'finished':'abandoned');releaseInputs();match.reset();homeOpen=true;document.body.classList.add('home-open');$('home').hidden=false;$('result').classList.add('hidden');$('halftime').classList.add('hidden');clubHome.show();
 }
-const ring=new THREE.Mesh(new THREE.RingGeometry(.87,.99,48),new THREE.MeshBasicMaterial({color:0xc5f773,side:THREE.DoubleSide,transparent:true,opacity:.95}));ring.rotation.x=-Math.PI/2;scene.add(ring);
+const ring=new THREE.Mesh(new THREE.RingGeometry(.92,1.16,48),new THREE.MeshBasicMaterial({color:0xc5f773,side:THREE.DoubleSide,transparent:true,opacity:1,depthTest:false}));ring.renderOrder=20;ring.rotation.x=-Math.PI/2;scene.add(ring);
 const receiverRing=new THREE.Mesh(new THREE.RingGeometry(.85,.94,40),new THREE.MeshBasicMaterial({color:0x91eaff,side:THREE.DoubleSide,transparent:true,opacity:.7}));receiverRing.rotation.x=-Math.PI/2;scene.add(receiverRing);
-const arrow=new THREE.Mesh(new THREE.ConeGeometry(.25,.43,3),new THREE.MeshBasicMaterial({color:0xc5f773}));arrow.rotation.z=Math.PI;arrow.scale.set(1/FIELD_SCALE,1,1/FIELD_SCALE);scene.add(arrow);
+const arrow=new THREE.Mesh(new THREE.ConeGeometry(.42,.72,3),new THREE.MeshBasicMaterial({color:0xc5f773,depthTest:false}));arrow.renderOrder=21;arrow.rotation.z=Math.PI;
+// Facing wedge on the ground: points where the controlled player is looking/running.
+const facing=new THREE.Mesh(new THREE.ShapeGeometry((()=>{const s=new THREE.Shape();s.moveTo(0,1.95);s.lineTo(-.5,1.3);s.lineTo(.5,1.3);s.closePath();return s;})()),new THREE.MeshBasicMaterial({color:0xc5f773,transparent:true,opacity:1,depthTest:false,side:THREE.DoubleSide}));facing.rotation.x=-Math.PI/2;facing.renderOrder=20;const facingPivot=new THREE.Group();facingPivot.add(facing);scene.add(facingPivot);arrow.scale.set(1/FIELD_SCALE,1,1/FIELD_SCALE);scene.add(arrow);
 // Run arrow: shows where the Q / 1~4 runner is heading, drawn flat on the turf from the runner to the target.
 const runArrowMaterial=new THREE.MeshBasicMaterial({color:0xc5f773,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});
 const runArrow=new THREE.Group(),runShaft=new THREE.Mesh(new THREE.PlaneGeometry(.42,1),runArrowMaterial),runHeadShape=new THREE.Shape();
@@ -226,7 +228,7 @@ for(let row=0;row<5;row++)for(let col=0;col<10;col++){const x=col*56+(row%2)*28,
 // Drawn larger and slightly self-lit than its real 22 cm so it reads from the broadcast camera.
 const BALL_VISUAL_SCALE=1.75,ballLift=VISUAL_SCALE.ballRadius*(BALL_VISUAL_SCALE-1);
 const ball=new THREE.Mesh(new THREE.SphereGeometry(VISUAL_SCALE.ballRadius,24,16),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(ballTexture),roughness:.55,emissive:0xffffff,emissiveIntensity:.22}));ball.scale.set(BALL_VISUAL_SCALE/FIELD_SCALE,BALL_VISUAL_SCALE,BALL_VISUAL_SCALE/FIELD_SCALE);ball.castShadow=true;scene.add(ball);
-const ballMarker=new THREE.Mesh(new THREE.RingGeometry(.34,.46,40),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,depthWrite:false}));ballMarker.rotation.x=-Math.PI/2;scene.add(ballMarker);
+const ballMarker=new THREE.Mesh(new THREE.RingGeometry(.5,.7,40),new THREE.MeshBasicMaterial({color:0xffe14a,transparent:true,opacity:.9,depthWrite:false,depthTest:false}));ballMarker.rotation.x=-Math.PI/2;ballMarker.renderOrder=19;scene.add(ballMarker);
 const ballShadow=new THREE.Mesh(new THREE.CircleGeometry(.15,24),new THREE.MeshBasicMaterial({color:0x092315,transparent:true,opacity:.35,depthWrite:false}));ballShadow.rotation.x=-Math.PI/2;scene.add(ballShadow);
 for(const id of ['player-preview','home-player-preview']){const host=$(id);host.onpointerdown=e=>{if(e.button!==0)return;previewDrag={id:e.pointerId,x:e.clientX};host.setPointerCapture(e.pointerId);};host.onpointermove=e=>{if(previewDrag?.id!==e.pointerId)return;previewYaw+=(e.clientX-previewDrag.x)*.012;previewDrag.x=e.clientX;};for(const event of ['pointerup','pointercancel','lostpointercapture'])host.addEventListener(event,()=>previewDrag=null);}
 $('preview-reset').onclick=()=>previewYaw=.12;
@@ -648,9 +650,9 @@ function frame(now){
   for(const {net,sign,base} of goalNets){const positions=net.geometry.attributes.position;for(let i=0;i<base.length;i+=3){positions.array[i]=base[i]+netOffset(base[i],base[i+1],base[i+2],sign,match.goalNet);positions.array[i+1]=base[i+1];positions.array[i+2]=base[i+2];}positions.needsUpdate=true;}
   ball.position.set(b.x,ballRenderY(b.y)+ballLift,b.z);if(active||match.goalWait>0&&!match.paused){ball.rotation.x+=b.vz*dt/VISUAL_SCALE.ballRadius;ball.rotation.z-=b.vx*dt/VISUAL_SCALE.ballRadius;}
   ballShadow.position.set(b.x,.085,b.z);ballShadow.material.opacity=.36/(1+(b.y-.34)*.8);{const r=BALL_VISUAL_SCALE*(1+(b.y-.34)*.22);ballShadow.scale.set(r/FIELD_SCALE,r/FIELD_SCALE,r);}
-  ballMarker.position.set(b.x,.09,b.z);{const r=1+(b.y-.34)*.12;ballMarker.scale.set(r/FIELD_SCALE,r/FIELD_SCALE,r);}ballMarker.material.opacity=.6/(1+(b.y-.34)*.35);
+  ballMarker.position.set(b.x,.09,b.z);{const r=1+(b.y-.34)*.12;ballMarker.scale.set(r/FIELD_SCALE,r/FIELD_SCALE,r);}ballMarker.material.opacity=.9/(1+(b.y-.34)*.2);
   updateOfficialsAndCrowd(match.paused?0:dt);updateSetPieceAim();
-  ring.position.set(p.x,.14,p.z);arrow.position.set(p.x,(p.profile?.height??180)/100+.48,p.z);ring.visible=arrow.visible=match.mode==='player'||match.mode==='manager'&&match.owner>=0;ring.material.color.set(match.mode==='manager'?(p.team===0?0x83c6ff:0xff777d):0xc5f773);arrow.material.color.copy(ring.material.color);
+  ring.position.set(p.x,.14,p.z);{const bob=Math.sin(performance.now()/180)*.12;arrow.position.set(p.x,(p.profile?.height??180)/100+.7+bob,p.z);}facingPivot.position.set(p.x,.15,p.z);facingPivot.rotation.y=p.heading+Math.PI;facingPivot.visible=false;ring.visible=arrow.visible=facingPivot.visible=match.mode==='player'||match.mode==='manager'&&match.owner>=0;ring.material.color.set(match.mode==='manager'?(p.team===0?0x83c6ff:0xff777d):0xc5f773);arrow.material.color.copy(ring.material.color);facing.material.color.copy(ring.material.color);
   const receiver=match.mode==='player'&&match.owner===match.selected?(match.charge?.type==='cross'?match.crossTarget(p,match.kickPower,match.input):match.charge?.type==='through'?match.throughTarget(p,match.kickPower,match.input):match.passTarget(undefined,match.charge?match.kickPower:.2)):null;receiverRing.visible=!!receiver&&match.running&&!match.ended;
   if(receiver)receiverRing.position.set(receiver.x,.14,receiver.z);
   syncHUD();
