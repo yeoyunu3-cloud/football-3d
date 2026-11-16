@@ -41,7 +41,7 @@ try {
   $('launch-match').disabled = true;
   throw new Error('WebGL unavailable');
 }
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -226,7 +226,7 @@ const ballTexture=document.createElement('canvas');ballTexture.width=512;ballTex
 const bc=ballTexture.getContext('2d');bc.fillStyle='#f3f4e9';bc.fillRect(0,0,512,256);
 for(let row=0;row<5;row++)for(let col=0;col<10;col++){const x=col*56+(row%2)*28,y=row*57;bc.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;const px=x+Math.cos(a)*18,py=y+Math.sin(a)*18;i?bc.lineTo(px,py):bc.moveTo(px,py);}bc.closePath();bc.fillStyle=(row+col)%3===0?'#182831':'#e3e6dc';bc.fill();bc.strokeStyle='#9aa59c';bc.lineWidth=1.5;bc.stroke();}
 // Drawn larger and slightly self-lit than its real 22 cm so it reads from the broadcast camera.
-const BALL_VISUAL_SCALE=1.75,ballLift=VISUAL_SCALE.ballRadius*(BALL_VISUAL_SCALE-1);
+const BALL_VISUAL_SCALE=1.0,ballLift=VISUAL_SCALE.ballRadius*(BALL_VISUAL_SCALE-1);
 const ball=new THREE.Mesh(new THREE.SphereGeometry(VISUAL_SCALE.ballRadius,24,16),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(ballTexture),roughness:.55,emissive:0xffffff,emissiveIntensity:.22}));ball.scale.set(BALL_VISUAL_SCALE/FIELD_SCALE,BALL_VISUAL_SCALE,BALL_VISUAL_SCALE/FIELD_SCALE);ball.castShadow=true;scene.add(ball);
 const ballMarker=new THREE.Mesh(new THREE.RingGeometry(.5,.7,40),new THREE.MeshBasicMaterial({color:0xffe14a,transparent:true,opacity:.9,depthWrite:false,depthTest:false}));ballMarker.rotation.x=-Math.PI/2;ballMarker.renderOrder=19;scene.add(ballMarker);
 const ballShadow=new THREE.Mesh(new THREE.CircleGeometry(.15,24),new THREE.MeshBasicMaterial({color:0x092315,transparent:true,opacity:.35,depthWrite:false}));ballShadow.rotation.x=-Math.PI/2;scene.add(ballShadow);
@@ -401,9 +401,9 @@ function cameraUpdate(dt,immediate=false){
   }
   // Parallel touchline camera: screen right is always attacking right.
   const r=match.restart,s=match.attackSign(r?.team??0);
-  const x=r?THREE.MathUtils.clamp(r.type==='corner'?r.x-s*8:r.type==='goalKick'?r.x+s*7:r.x+s*6,-47,47):THREE.MathUtils.clamp(match.mode==='manager'?b.x:p.x*.42+b.x*.58,match.goalWait>0?-49:-39,match.goalWait>0?49:39);
+  const x=r?THREE.MathUtils.clamp(r.type==='corner'?r.x-s*8:r.type==='goalKick'?r.x+s*7:r.x+s*6,-47,47):THREE.MathUtils.clamp(match.mode==='manager'?b.x:p.x*.42+b.x*.58+(replay?0:THREE.MathUtils.clamp(b.vx*.28,-5,5)),match.goalWait>0?-49:-39,match.goalWait>0?49:39);
   // Player mode follows the play across the pitch so the close broadcast camera keeps players large.
-  const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):(match.mode==='player'||replay)&&!r?THREE.MathUtils.clamp((p.z*.4+b.z*.6)*.75,-22,22):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
+  const z=match.goalWait>0?THREE.MathUtils.clamp(b.z,-29,29):(match.mode==='player'||replay)&&!r?THREE.MathUtils.clamp((p.z*.4+b.z*.6)*.9,-24,24):THREE.MathUtils.clamp(17+(r?r.z:match.mode==='manager'?b.z:p.z*.4+b.z*.6)*.04,15.5,18.5);
   const ideal=new THREE.Vector3(x*FIELD_SCALE,0,z*FIELD_SCALE);
   focus.lerp(ideal,immediate?1:1-Math.exp(-dt*(r?7:4.5)));
   cameraTarget.copy(focus);if(match.mode==='player'&&!r&&match.goalWait<=0)cameraTarget.y=1;
@@ -415,9 +415,9 @@ function cameraUpdate(dt,immediate=false){
     const near=match.players.filter(q=>!q.sentOff&&q.index>0).sort((a,c)=>Math.hypot(a.x-b.x,a.z-b.z)-Math.hypot(c.x-b.x,c.z-b.z)).slice(0,7);
     const halfWidth=Math.max(...near.map(q=>Math.abs(q.x*FIELD_SCALE-focus.x)))+6,depth=Math.max(...near.map(q=>Math.abs(q.z*FIELD_SCALE-focus.z)))+5;
     const hFov=2*Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect),want=Math.max(halfWidth/Math.tan(hFov/2),depth*1.9);
-    frameDistance+=(THREE.MathUtils.clamp(want,narrow?46:38,narrow?62:48)-frameDistance)*(immediate?1:1-Math.exp(-dt*1.4));
+    frameDistance+=(THREE.MathUtils.clamp(want,narrow?44:31,narrow?60:42)-frameDistance)*(immediate?1:1-Math.exp(-dt*1.4));
   }
-  const fd=frameDistance,sinA=.57,cosA=.82;
+  const fd=frameDistance,sinA=.5,cosA=.866;
   cameraPosition.set(focus.x,narrow?36:direct?fd*sinA:43,focus.z+(narrow?38:direct?fd*cosA:25));
   // Replay: a lower, closer angle that tracks the ball.
   if(replay)cameraPosition.set(focus.x,narrow?24:13,focus.z+(narrow?30:22));
@@ -597,11 +597,25 @@ function updateOfficialsAndCrowd(dt){
   if(match.goalWait>0){for(let i=0;i<crowdPositions.length;i+=5){const [x,y,z]=crowdPositions[i],jump=Math.abs(Math.sin(match.controlTime*10+i))*.2;dummy.position.set(x,y+.48+jump,z);dummy.updateMatrix();crowdBodies.setMatrixAt(i,dummy.matrix);dummy.position.y=y+.98+jump;dummy.updateMatrix();crowdHeads.setMatrixAt(i,dummy.matrix);}crowdBodies.instanceMatrix.needsUpdate=true;crowdHeads.instanceMatrix.needsUpdate=true;}
 }
 let last=performance.now(),learningSavedAt=0;
+// Adaptive quality: if frames run long, drop the render resolution (then the shadow map) a step; recover when there is headroom.
+const quality={ema:16,level:0,base:Math.min(devicePixelRatio,1.5),slowFor:0,fastFor:0};
+function adaptQuality(ms,dt){
+  if(ms>250)return;// tab was hidden or the machine hiccuped: not a reason to degrade
+  quality.ema+=(Math.min(ms,80)-quality.ema)*.08;
+  if(quality.ema>21){quality.slowFor+=dt;quality.fastFor=0;}else if(quality.ema<13){quality.fastFor+=dt;quality.slowFor=0;}else{quality.slowFor=quality.fastFor=0;}
+  let change=0;if(quality.slowFor>1.2&&quality.level<4)change=1;else if(quality.fastFor>6&&quality.level>0)change=-1;
+  if(!change)return;quality.slowFor=quality.fastFor=0;quality.level+=change;
+  const ratio=Math.max(.6,quality.base-quality.level*.25);renderer.setPixelRatio(ratio);renderer.setSize(innerWidth,innerHeight);
+  const shadowSize=quality.level>=3?1024:2048;if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.map?.dispose();sun.shadow.map=null;}
+  renderer.shadowMap.type=quality.level>=4?THREE.BasicShadowMap:THREE.PCFSoftShadowMap;
+  scene.traverse(o=>{if(o.material){const m=Array.isArray(o.material)?o.material:[o.material];m.forEach(x=>x.needsUpdate=true);}});
+}
+if(new URLSearchParams(location.search).has('debug'))window.__q={quality,adaptQuality};
 function frame(now){
-  const dt=Math.min((now-last)/1000,.1);last=now;
+  const raw=now-last,dt=Math.min(raw/1000,.1);last=now;if(match.running&&!match.paused)adaptQuality(raw,dt);
   const active=match.running&&!match.paused&&!match.ended&&(!exitDialog.open||!match.canPause)&&match.goalWait<=0&&!match.restart&&!match.kickoffState&&(match.phase==='play'||match.phase==='shootout'&&match.shootout.stage==='flight');
   sampleInput();
-  if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt/FIELD_SCALE*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.24);while(accumulator>=1/120){match.step(1/120);accumulator-=1/120;}}else accumulator=0;
+  if((!exitDialog.open||!match.canPause)&&!homeOpen){accumulator=Math.min(accumulator+dt/FIELD_SCALE*(match.mode==='manager'&&match.phase==='play'&&!match.restart&&!match.goalWait&&!match.cardWait?matchSpeed:1),.09);while(accumulator>=1/60){match.step(1/60);accumulator-=1/60;}}else accumulator=0;
   updateBallSound(dt);updateRunArrow();updateRunMenu();updateReplayBadge();updateSkillHold();
   for(const p of match.players){
     const visual=players[p.id],g=visual.group;g.visible=!p.sentOff&&!p.shootoutExcluded;if(p.shootoutGoalkeeper&&p.index!==0){if(!visual.shootoutAppearance){visual.shootoutAppearance={profile:{...visual.profile},uniform:visual.uniform};applyRealAppearance(visual,{...visual.profile,role:'GK'},{...visual.uniform,keeper:'#f6ca55'});}}else if(visual.shootoutAppearance){applyRealAppearance(visual,visual.shootoutAppearance.profile,visual.shootoutAppearance.uniform);visual.shootoutAppearance=null;}const speed=Math.hypot(p.vx,p.vz);
