@@ -1,6 +1,6 @@
 import {eventMinute,fillEventRow,scoreSummary} from './event-format.js?v=20261115-hud1';
 import {KIT_PRESETS} from './kits.js?v=20261115-hud1';
-import {FORMATIONS} from './match.js?v=20261116-net2';
+import {FORMATIONS} from './match.js?v=20261116-net3';
 import {applyClub,sanitizeClub} from './roster.js?v=20261115-hud1';
 import {ARCHETYPES,SPECIAL_TRAITS,SPECIAL_IDS,isKeeperTrait,validSpecials} from './player-traits.js?v=20261115-hud1';
 import {loadSquads,saveSquads,createSquad,deleteSquad,validateNumber,loadHistory,clearHistory} from './squads.js?v=20261115-hud1';

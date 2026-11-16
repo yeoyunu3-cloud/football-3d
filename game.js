@@ -1,6 +1,6 @@
 import {loadLearning,saveLearning} from './opponent-adaptation.js?v=20261115-hud1';
 import {fillEventRow} from './event-format.js?v=20261115-hud1';
-import {createOnline,validRoomName} from './online.js?v=20261116-net2';
+import {createOnline,validRoomName} from './online.js?v=20261116-net3';
 import {applyClub,defaultClub,sanitizeClub} from './roster.js?v=20261115-hud1';
 import {ARCHETYPES,archetypeOf,traits,SPECIAL_TRAITS,specialsOf} from './player-traits.js?v=20261115-hud1';
 import {applyKeeperRig,applyCelebrationRig,applyDistributionRig} from './player-presentation.js?v=20261115-hud1';
@@ -13,7 +13,7 @@ import {TACTIC_OPTIONS,TACTIC_LABELS} from './tactics.js?v=20261115-hud1';
 import {netOffset} from './goal-effects.js?v=20261115-hud1';
 import {CONTROL_PRESETS,DEFAULT_PRESET,DOUBLE_TAP_MS,SKILL_COMMANDS,SKILL_HOLDS,skillArrow,pickSkill,validPreset,keyLabel,actionFor,runAngleFor,movement,isCancelCombo,kickStyleFor,shotModKeys,shotStyleFor,SHOT_LABELS,KICK_LABELS} from './controls.js?v=20261115-hud1';
 import * as THREE from './vendor/three.module.min.js';
-import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261116-net2';
+import { Match, FORMATION, NAMES, ROLES, NUMBERS } from './match.js?v=20261116-net3';
 import {unlockBallSound,playTouch,playTrap,playKick,playCrowdRoar} from './ball-sound.js?v=20261115-hud1';
 import { initHome,eventText,EVENT_LABELS,IMPORTANT_EVENTS } from './home.js?v=20261115-hud1';
 import { saveMatch } from './squads.js?v=20261115-hud1';

@@ -576,13 +576,28 @@ export class Match {
       restart:rs?{type:rs.type,team:rs.team,taker:rs.taker,x:rs.x,z:rs.z,wait:rs.wait,readyAfter:rs.readyAfter,aimZ:rs.aimZ,aim:rs.aim,keeperChoice:rs.keeperChoice,wallIds:rs.wallIds,view:rs.view?'spectate':null,manual:false}:null,
       stats:this.stats,shootout:this.phase==='shootout'&&this.shootout?{turn:this.shootout.turn,stage:this.shootout.stage,score:this.shootout.score,attempts:this.shootout.attempts,kicks:this.shootout.kicks,winner:this.shootout.winner,wait:this.shootout.wait,aim:this.shootout.aim,kicker:this.shootout.kicker,committed:this.shootout.committed,keeperChoice:this.shootout.keeperChoice}:null};
   }
+  // Compact per-tick snapshot (one Float32Array, ~1.6 KB): only what changes every frame. The full snapshot above
+  // (slow, ~5 per second) carries everything else, so the connection never chokes on big messages.
+  netFast(){
+    const keys=Match.NET_KEYS,players=this.players,out=new Float32Array(players.length*keys.length+10);let i=0;
+    for(const p of players)for(const k of keys)out[i++]=p[k]??0;
+    const b=this.ball;out[i++]=b.x;out[i++]=b.y;out[i++]=b.z;out[i++]=b.vx;out[i++]=b.vy;out[i++]=b.vz;out[i++]=this.owner;out[i++]=this.time;out[i++]=this.controlTime;out[i++]=this.remaining;
+    return out;
+  }
+  netPushFast(buf){
+    const last=this.netState;if(!last||!last.players)return;const keys=Match.NET_KEYS,K=keys.length,a=new Float32Array(buf);
+    if(a.length!==last.players.length*K+10)return;
+    const players=last.players.map((o,n)=>{const q={...o};for(let j=0;j<K;j++)q[keys[j]]=a[n*K+j];return q;});let i=last.players.length*K;
+    const d={...last,players,ball:{x:a[i],y:a[i+1],z:a[i+2],vx:a[i+3],vy:a[i+4],vz:a[i+5]},owner:a[i+6],time:a[i+7],controlTime:a[i+8],remaining:a[i+9]};
+    this.netPush(d);
+  }
   // Guest side: the match object is a puppet that eases toward the host's latest snapshot instead of simulating.
   // The guest keeps the last snapshots and draws everything ~100 ms in the past, interpolating between two of them, so
   // network jitter (ping spikes) never shows as stutter. His own player is predicted locally from his input and
   // only nudged toward the host's authoritative position, so his controls respond at once instead of after the round trip.
   netPush(d){const now=performance.now();(this.netBuf??=[]).push({t:now,d});if(this.netBuf.length>12)this.netBuf.shift();this.netState=d;this.netAt=now;}
   applyNet(dt){
-    const n=this.netState;if(!n)return;const buf=this.netBuf??[],now=performance.now(),rt=now-100;
+    const n=this.netState;if(!n)return;const buf=this.netBuf??[],now=performance.now(),rt=now-110;
     let A=buf[0],B=buf[0];for(let i=0;i<buf.length;i++){if(buf[i].t<=rt){A=buf[i];B=buf[Math.min(i+1,buf.length-1)];}}
     const span=B.t-A.t,al=span>0?Math.min(1,Math.max(0,(rt-A.t)/span)):1,over=Math.min(.15,Math.max(0,(rt-B.t)/1000));
     const lerp=(p,q)=>p+(q-p)*al,own=this.selected,mine=n.selected>=0?n.selected:-1,inp=this.input;
@@ -1327,3 +1342,4 @@ export class Match {
     this.recoverStamina(dt);this.resolveContacts(dt);if(this.restart)return;this.integrateBall(dt);this.updateCalledRuns();this.updateAutoSelection();this.tryUserKick();this.updateRemote();
   }
 }
+Match.NET_KEYS=['x','z','vx','vz','heading','stride','kickAnim','jump','dive','diveHeight','tackleAnim','throwAnim','jostle','celebration','celebrationLift','stamina','trap'];

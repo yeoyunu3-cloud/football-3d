@@ -26,7 +26,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
   const lobby=createLobby({onRooms,onState:onLobbyState});
   const listed=()=>state.room&&!isLocalRoom(state.room);
   const announce=status=>{if(listed())lobby.announce({name:state.room,locked:Boolean(state.password),status,team:getClub()?.name});};
-  const state={role:null,peer:null,conn:null,room:'',password:'',timer:null,lastInput:0,sentInput:'',lastSeen:0};
+  const state={role:null,peer:null,conn:null,room:'',password:'',timer:null,lastInput:0,tick:0,sentInput:'',lastSeen:0};
   const status=(text,kind='info')=>onStatus?.(text,kind);
   const send=message=>{if(state.conn?.open)state.conn.send(message);};
   function close(reason=''){
@@ -50,7 +50,10 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
             state.lastSeen=performance.now();clearInterval(state.timer);state.timer=setInterval(()=>{
               // No word from the guest for a while (closed tab, lost network): hand the away team back to the AI.
               if(performance.now()-state.lastSeen>SILENCE_MS){close('상대와의 연결이 끊겼습니다. 남은 경기는 AI가 상대합니다.');return;}
-              if(state.conn?.open&&(match.running||match.ended))send({t:'s',d:match.netSnapshot()});},SNAPSHOT_MS);
+              if(!(state.conn?.open&&(match.running||match.ended)))return;
+              // Full state ~5x a second; a tiny binary frame every tick. Skip a frame if the link is backed up, so lag never piles up.
+              if(state.tick++%6===0)send({t:'s',d:match.netSnapshot()});
+              else{const dc=state.conn.dataChannel;if(dc&&dc.bufferedAmount>24000)return;send({t:'f',b:match.netFast().buffer});}},SNAPSHOT_MS);
             status('상대가 들어왔습니다. 경기를 시작합니다.','ok');return;
           }
           if(conn!==state.conn||!match.remote)return;state.lastSeen=performance.now();
@@ -82,6 +85,7 @@ export function createOnline({match,getClub,launch,onStatus,onClosed,onRooms,onL
           if(message?.t==='reject'){clearTimeout(timeout);fail(message.reason??'입장이 거부되었습니다.');return;}
           if(message?.t==='welcome'){clearTimeout(timeout);done=true;state.role='guest';launch('guest',message.club,getClub());becomePuppet();status('방에 들어왔습니다. 원정 팀으로 플레이합니다.','ok');resolve();return;}
           if(message?.t==='s'&&state.role==='guest'){match.netPush(message.d);state.lastSeen=performance.now();}
+          if(message?.t==='f'&&state.role==='guest'){let b=message.b;if(ArrayBuffer.isView(b))b=b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);if(b instanceof ArrayBuffer)match.netPushFast(b);state.lastSeen=performance.now();}
         });
         conn.on('close',()=>{if(state.role==='guest')close('방장과의 연결이 끊겼습니다.');else fail('연결이 끊겼습니다.');});
       };
