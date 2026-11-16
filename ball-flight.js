@@ -25,7 +25,7 @@ export function flightStep(ball,dt){
   if(!air){const sp=Math.hypot(ball.vx,ball.vz);if(sp<3.5){const next=Math.max(0,sp-1.4*dt);if(sp>0){ball.vx*=next/sp;ball.vz*=next/sp;}}}
   // Bounce: grass gives back about half the vertical speed (less on hard landings) and skids off some of the
   // horizontal speed; very small hops die out. Topspin from a dipping shot keeps more of its run.
-  if(ball.y<.34){const impact=-vy,e=impact>9?.5:impact>4?.55:.58,skid=impact>1.2?Math.max(.78,1-impact*.018):1;ball.y=.34;ball.vy=impact>1.2?impact*e:0;if(impact>1.2){ball.vx*=skid;ball.vz*=skid;}ball.shotFlight=null;if(ball.backspin){ball.backspin=false;ball.vx*=.45;ball.vz*=.45;ball.vy*=.5;ball.flightDrag=1.3;}}
+  if(ball.y<.34){const impact=-vy,e=clamp(.62-.014*impact,.48,.6)*clamp((impact-1.2)/1.1,0,1),skid=impact>1.2?Math.max(.78,1-impact*.018):1;ball.y=.34;ball.vy=impact>1.2?impact*e:0;if(impact>1.2){ball.vx*=skid;ball.vz*=skid;}ball.shotFlight=null;if(ball.backspin){ball.backspin=false;ball.vx*=.45;ball.vz*=.45;ball.vy*=.5;ball.flightDrag=1.3;}}
   return ball;
 }
 export function forecastBall(ball,t){

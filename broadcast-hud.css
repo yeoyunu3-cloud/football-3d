@@ -138,3 +138,23 @@ body .replay-badge{top:68px}
 }
 @media(max-width:600px) and (pointer:coarse){main .player-card{bottom:222px}main .power-meter{bottom:296px}}
 @media(prefers-reduced-motion:reduce){.goal-banner.show *,.title-screen *,#result.result{animation-duration:.01s!important}}
+
+/* Static poster title screen (no animation).
+   EDIT THE BACKGROUND COLOURS HERE: */
+.title-screen{
+  --sky-top:#b0c4ec;   /* top of sky */
+  --sky-mid:#f4d6e2;   /* middle */
+  --sky-bot:#fce2d6;   /* bottom */
+  --glow-left:#f8cddc; /* pink bloom, left */
+  --glow-right:#aabeeb;/* blue bloom, top right */
+  background:
+    url(./assets/title-logo.png) 40% center/cover no-repeat,
+    url(./assets/title-player.png) 40% center/cover no-repeat,
+    radial-gradient(ellipse 35% 45% at 15% 55%,color-mix(in srgb,var(--glow-left) 55%,transparent),transparent),
+    radial-gradient(ellipse 30% 40% at 90% 15%,color-mix(in srgb,var(--glow-right) 55%,transparent),transparent),
+    linear-gradient(180deg,var(--sky-top),var(--sky-mid) 50%,var(--sky-bot));
+  display:block;transition:none}
+.title-screen.leaving{opacity:0;transform:none;pointer-events:none}
+.title-screen .ts-content{position:absolute;left:8%;bottom:14%;align-items:flex-start;padding:0}
+.title-screen .ts-start{margin:0;animation:none;background:#0b0e14;color:#fff;border:0;border-radius:4px;padding:14px 30px}
+.title-screen .ts-start:hover,.title-screen .ts-start:focus-visible{background:#1d6fd6;color:#fff}
